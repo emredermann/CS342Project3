@@ -66,7 +66,6 @@ int sbmem_open(){
 
 void *sbmem_alloc (int reqsize){
 
-    // Only idea
     char *ptr= malloc( nextPower(reqsize));
     if (ptr != NULL)
         return ptr;
