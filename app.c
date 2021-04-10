@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "sbmem.h"
 #define ASIZE 256
+
 int main()
 {
     int i, ret;
