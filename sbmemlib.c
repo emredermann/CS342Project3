@@ -54,7 +54,7 @@ bool sbmem_remove (){
 
 
 int sbmem_open(){
-    ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 ) == MAP_FAILED);
+    ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 ) == MAP_FAILED;
     if(ptr == MAP_FAILED){
         printf( "Mmap failed: \n");
         return -1;
