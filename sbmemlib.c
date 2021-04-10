@@ -46,7 +46,5 @@ bool sbmem_remove (){
 
     if(shm_unlink("/sharedMem"))
         return true;
-    
-    sem_destroy();
     return false;
 }
