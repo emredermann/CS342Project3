@@ -1,5 +1,6 @@
 #include "sbmem.h"
 #include <stdio.h>
+#include <math.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -66,14 +67,16 @@ int sbmem_open(){
 void *sbmem_alloc (int reqsize){
 
     // Only idea
-    char *ptr= malloc( reqsize );
-
+    char *ptr= malloc( nextPower(reqsize));
+    if (ptr != NULL)
+        return ptr;
+    return NULL;
 }
 
 //To find the necessary size of the allocation.
 int nextPower(int num){
     int i = 1;
-    while(true)
+    while(1)
     {
         if( (int) pow(2,i) > num){
             return (int) pow(2,i);
