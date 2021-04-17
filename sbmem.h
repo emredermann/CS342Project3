@@ -1,3 +1,7 @@
+
+#ifndef SBMEM_H
+#define SBMEM_H
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <sys/stat.h>
@@ -20,3 +24,5 @@ int sbmem_open();
 void *sbmem_alloc (int reqsize);
 void sbmem_free (void *ptr);
 int sbmem_close ();
+
+#endif

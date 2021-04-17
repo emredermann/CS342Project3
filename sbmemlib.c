@@ -20,27 +20,29 @@
 
 
 // Shared memory object
-int fd;
+int segmentID;
 char *ptr;
 sem_t semvar;
 
 int sbmem_init(int segsize){
-
+    
+    // Semaphoe initialization to use in the memory segment.
+    sem_init(&semvar,1,0);
     // Removes the previous (if exist) shared memory.
     if (shm_unlink( "/sharedMem" ))
     {
         printf("Shared memory unlinked.");
     }
 
-    fd = shm_open("/sharedMem",O_RDWR | O_CREAT, 0777 );
+    segmentID = shm_open("/sharedMem",O_RDWR | O_CREAT, 0777 );
 
-  if(fd == -1){
+  if(segmentID == -1){
       printf("Error Open shared memory open \n");
       return -1;
   }  
     /* Set the memory object's size  */
     //The size of part ??
-    if( ftruncate( fd, sizeof( segsize ) ) == -1 ) {
+    if( ftruncate( segmentID, sizeof( segsize ) ) == -1 ) {
         printf("ftruncate error \n");
         return -1;
     }
@@ -59,7 +61,7 @@ bool sbmem_remove (){
 
 int sbmem_open(){
     //library mapped the shared segment.
-    ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, segmentID, 0 );
     if(ptr == MAP_FAILED){
         printf( "Mmap failed: \n");
         return -1;
@@ -70,11 +72,17 @@ int sbmem_open(){
 
 void *sbmem_alloc (int reqsize){
 
+    sem_wait(&semvar);
     char *ptr= malloc( nextPower(reqsize));
+    sem_post(&semvar);
+    
     if (ptr != NULL)
+    
         return ptr;
+    
     printf("Memory could not allocated");
     return NULL;
+
 }
 
 //To find the necessary size of the allocation.
@@ -96,7 +104,7 @@ void sbmem_free (void *ptr){
 
 //OPTIONAL FOR THE PROJECT
 int sbmem_close (){
-    if(close( fd ) && munmap( ptr, len ))
+    if(close( segmentID ) && munmap( ptr, len ))
         return 1;
     return -1;
 }
