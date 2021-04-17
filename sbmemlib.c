@@ -22,12 +22,15 @@
 
 
 // Shared memory object
-
+// The attributes or the structure must be checked. 
 struct entry{
     pid_t pid;
     long baseAddress;
     long limit;
 };
+
+
+
 int current_counter;
 int fd;
 struct entry **ptr;
