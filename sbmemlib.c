@@ -16,16 +16,27 @@
 
 //https://www.geeksforgeeks.org/buddy-memory-allocation-program-set-1-allocation/
 
-//Check Those links for shared memory segment
+
+//mmap implementation
+//https://yandex.com/turbo/devsday.ru/s/blog/details/21607
 
 
 // Shared memory object
+
+struct entry{
+    pid_t pid;
+    long baseAddress;
+    long limit;
+};
+int current_counter;
 int fd;
-char *ptr;
+struct entry **ptr;
 sem_t semvar;
 
-int sbmem_init(int segsize){
 
+
+int sbmem_init(int segsize){
+    current_counter = 0;
     // Removes the previous (if exist) shared memory.
     if (shm_unlink( "/sharedMem" ))
     {
@@ -44,12 +55,13 @@ int sbmem_init(int segsize){
         printf("ftruncate error \n");
         return -1;
     }
+
+    //Initializes the shared memory
       ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     if(ptr == MAP_FAILED){
         printf( "Mmap failed: \n");
         return -1;
     }
-    
     return 0;
 }
 
@@ -71,8 +83,14 @@ int sbmem_open(){
 
 
 void *sbmem_alloc (int reqsize){
+    
+    //instead of malloc
+    // ?????? not sure how much correct for allocation of the space.
+    struct entry tmp[reqsize];
+    ptr[current_counter++] = tmp;
 
-    char *ptr= malloc( nextPower(reqsize));
+
+    
     if (ptr != NULL)
         return ptr;
     printf("Memory could not allocated");
