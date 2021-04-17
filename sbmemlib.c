@@ -34,16 +34,22 @@ int sbmem_init(int segsize){
 
     fd = shm_open("/sharedMem",O_RDWR | O_CREAT, 0777 );
 
-  if(fd == -1){
+    if(fd == -1){
       printf("Error Open shared memory open \n");
       return -1;
-  }  
+   }  
     /* Set the memory object's size  */
     //The size of part ??
     if( ftruncate( fd, sizeof( segsize ) ) == -1 ) {
         printf("ftruncate error \n");
         return -1;
     }
+      ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    if(ptr == MAP_FAILED){
+        printf( "Mmap failed: \n");
+        return -1;
+    }
+    
     return 0;
 }
 
@@ -59,11 +65,7 @@ bool sbmem_remove (){
 
 int sbmem_open(){
     //library mapped the shared segment.
-    ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
-    if(ptr == MAP_FAILED){
-        printf( "Mmap failed: \n");
-        return -1;
-    }
+  
     return 0;
 }
 
