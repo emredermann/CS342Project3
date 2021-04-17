@@ -10,16 +10,19 @@
 #include <semaphore.h>
 #include <sys/mman.h>
 
+
 // Defined the length randomly
 #define len 256
 
+//https://www.geeksforgeeks.org/buddy-memory-allocation-program-set-1-allocation/
 
 //Check Those links for shared memory segment
-//https://stackoverflow.com/questions/29238015/creating-shared-memory-segments
-//https://stackoverflow.com/questions/2261582/changing-existing-shared-memory-segment-size
 
+
+// Shared memory object
 int fd;
 char *ptr;
+sem_t semvar;
 
 int sbmem_init(int segsize){
 
@@ -69,6 +72,7 @@ void *sbmem_alloc (int reqsize){
     char *ptr= malloc( nextPower(reqsize));
     if (ptr != NULL)
         return ptr;
+    printf("Memory could not allocated");
     return NULL;
 }
 
@@ -82,11 +86,14 @@ int nextPower(int num){
         }
         i++;
     }
-    
 }
 
 
-void sbmem_free (void *ptr){}
+void sbmem_free (void *ptr){
+    free(ptr);
+}
+
+
 int sbmem_close (){
     if(close( fd ) && munmap( ptr, len ))
         return 1;
