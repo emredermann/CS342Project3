@@ -86,7 +86,7 @@ void *sbmem_alloc (int reqsize){
     
     //instead of malloc
     // ?????? not sure how much correct for allocation of the space.
-    struct entry tmp[reqsize];
+    struct entry * tmp = malloc(sizeof(struct entry) * reqsize);
     ptr[current_counter++] = tmp;
 
 
