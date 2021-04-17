@@ -86,13 +86,12 @@ void *sbmem_alloc (int reqsize){
     
     //instead of malloc
     // ?????? not sure how much correct for allocation of the space.
-    struct entry * tmp = malloc(sizeof(struct entry) * reqsize);
-    ptr[current_counter++] = tmp;
-
-
-    
-    if (ptr != NULL)
-        return ptr;
+    struct entry * tmp = malloc( nextPower(reqsize));
+   
+    if (tmp != NULL){
+         ptr[current_counter++] = tmp;
+         return tmp;
+        }
     printf("Memory could not allocated");
     return NULL;
 }
