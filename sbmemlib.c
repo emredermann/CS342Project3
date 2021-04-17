@@ -38,21 +38,26 @@ sem_t semvar;
 int sbmem_init(int segsize){
     current_counter = 0;
     // Removes the previous (if exist) shared memory.
+    sem_wait(&semvar);
     if (shm_unlink( "/sharedMem" ))
     {
         printf("Shared memory unlinked.");
+        sem_post(&semvar);
+        return 0;
     }
 
     fd = shm_open("/sharedMem",O_RDWR | O_CREAT, 0777 );
 
     if(fd == -1){
       printf("Error Open shared memory open \n");
+      sem_post(&semvar);
       return -1;
    }  
     /* Set the memory object's size  */
     //The size of part ??
     if( ftruncate( fd, sizeof( segsize ) ) == -1 ) {
         printf("ftruncate error \n");
+        sem_post(&semvar);
         return -1;
     }
 
@@ -60,8 +65,10 @@ int sbmem_init(int segsize){
       ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     if(ptr == MAP_FAILED){
         printf( "Mmap failed: \n");
+        sem_post(&semvar);
         return -1;
     }
+    sem_post(&semvar);
     return 0;
 }
 
@@ -89,7 +96,9 @@ void *sbmem_alloc (int reqsize){
     struct entry * tmp = malloc( nextPower(reqsize));
    
     if (tmp != NULL){
+         sem_wait(&semvar);
          ptr[current_counter++] = tmp;
+         sem_post(&semvar);
          return tmp;
         }
     printf("Memory could not allocated");
@@ -110,7 +119,9 @@ int nextPower(int num){
 
 
 void sbmem_free (void *ptr){
+    sem_wait(&semvar);
     free(ptr);
+    sem_post(&semvar);
 }
 
 //OPTIONAL FOR THE PROJECT
