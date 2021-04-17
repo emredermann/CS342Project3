@@ -58,7 +58,8 @@ bool sbmem_remove (){
 
 
 int sbmem_open(){
-    ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 ) == MAP_FAILED;
+    //library mapped the shared segment.
+    ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     if(ptr == MAP_FAILED){
         printf( "Mmap failed: \n");
         return -1;
@@ -93,7 +94,7 @@ void sbmem_free (void *ptr){
     free(ptr);
 }
 
-
+//OPTIONAL FOR THE PROJECT
 int sbmem_close (){
     if(close( fd ) && munmap( ptr, len ))
         return 1;
