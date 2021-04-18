@@ -15,7 +15,7 @@
 #define len 256
  
 //https://www.geeksforgeeks.org/buddy-memory-allocation-program-set-1-allocation/
-
+//https://www.tutorialspoint.com/inter_process_communication/inter_process_communication_shared_memory.htm
 
 // Important One
 //https://stackoverflow.com/questions/29238015/creating-shared-memory-segments
@@ -32,10 +32,11 @@ typedef struct {
     int baseAddress;
     // Limit of the block
     int limit;
+    block * next;
 }block;
 
-block * p_map;
 
+block * p_map;
 int current_counter;
 int fd;
 struct entry **ptr;
@@ -46,7 +47,6 @@ int counter;
 
 int sbmem_init(int segsize){
     
-    
     // Removes the previous (if exist) shared memory.
     sem_wait(&semvar);
     if (shm_unlink( "/sharedMem" ))
@@ -56,6 +56,7 @@ int sbmem_init(int segsize){
         return 0;
     }
 
+    // Creates shared memory
     fd = shm_open("/sharedMem",O_RDWR | O_CREAT, 0777 );
     
     
@@ -86,6 +87,7 @@ int sbmem_init(int segsize){
 }
 
 
+
 // Have doubts about 
 // The created semaphore(s) will be removed as well. 
 bool sbmem_remove (){
@@ -97,15 +99,14 @@ bool sbmem_remove (){
 
 int sbmem_open(){
 
-
-     // Buffer size declared as 10
+ 
     unknwnSem = sem_open("/empty_sem", O_CREAT, 0644, 10);
     if (unknwnSem == SEM_FAILED) {
      perror("Failed to open semphore for empty");
      exit(-1);
     }
 
-int pid = fork();
+//int pid = fork();
    
     return 0;
 }
