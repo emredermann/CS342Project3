@@ -40,18 +40,17 @@ block * p_map;
 int current_counter;
 int fd;
  
-sem_t semvar;
-sem_t  *unknwnSem;
+
 int counter;
 
 int sbmem_init(int segsize){
     
     // Removes the previous (if exist) shared memory.
-    sem_wait(&semvar);
+  
     if (shm_unlink( "/sharedMem" ))
     {
         printf("Shared memory unlinked.");
-        sem_post(&semvar);
+
         return 0;
     }
 
@@ -61,28 +60,25 @@ int sbmem_init(int segsize){
     
     if(fd == -1){
       printf("Error Open shared memory open \n");
-      sem_post(&semvar);
+     
       return -1;
    }  
     /* Set the memory object's size  */
     //The size of part ??
-    if( ftruncate( fd, sizeof( segsize ) ) == -1 ) {
+    if( ftruncate( fd, sizeof( nextPower(segsize) ) ) == -1 ) {
         printf("ftruncate error \n");
-        sem_post(&semvar);
         return -1;
     }
 
     //Initializes the shared memory mapps it to the p_map
     // Size of the mapped segment.
-    p_map = (block *) mmap( 0, sizeof(block) * segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    p_map = (block *) mmap( 0, sizeof(block) * nextPower(segsize), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     p_map->next == NULL;
 
     if(p_map == MAP_FAILED){
         printf( "Mmap failed: \n");
-        sem_post(&semvar);
         return -1;
     }
-    sem_post(&semvar);
     return 0;
 }
 
@@ -100,11 +96,6 @@ bool sbmem_remove (){
 int sbmem_open(){
 
  
-    unknwnSem = sem_open("/empty_sem", O_CREAT, 0644, 10);
-    if (unknwnSem == SEM_FAILED) {
-     perror("Failed to open semphore for empty");
-     exit(-1);
-    }
 
 //int pid = fork();
    
@@ -117,9 +108,7 @@ void *sbmem_alloc (int reqsize){
     // ?????? not sure how much correct for allocation of the space.
     
     if (p_map != NULL){
-         sem_wait(&semvar);
-        
-         sem_post(&semvar);
+
          return p_map;
         }
     printf("Memory could not allocated");
@@ -140,8 +129,8 @@ int nextPower(int num){
 
 
 void sbmem_free (void *ptr){
-    sem_wait(&semvar);
+
     free(ptr);
-    sem_post(&semvar);
+
 }
  
