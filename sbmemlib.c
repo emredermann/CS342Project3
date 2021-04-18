@@ -105,9 +105,6 @@ int sbmem_open(){
      exit(-1);
     }
 
-
-
-
 int pid = fork();
    
     return 0;
