@@ -28,8 +28,10 @@
 // The attributes or the structure must be checked. 
 typedef struct {
     pid_t pid;
-    long baseAddress;
-    long limit;
+    // Current location of the block 
+    int baseAddress;
+    // Limit of the block
+    int limit;
 }block;
 
 block * p_map;
@@ -40,7 +42,7 @@ struct entry **ptr;
 
 sem_t semvar;
 sem_t  *unknwnSem;
-
+int counter;
 
 int sbmem_init(int segsize){
     
@@ -94,13 +96,20 @@ bool sbmem_remove (){
 
 
 int sbmem_open(){
-     // Buffer size declared as 10
 
+
+     // Buffer size declared as 10
     unknwnSem = sem_open("/empty_sem", O_CREAT, 0644, 10);
     if (unknwnSem == SEM_FAILED) {
      perror("Failed to open semphore for empty");
      exit(-1);
-}
+    }
+
+
+
+
+int pid = fork();
+   
     return 0;
 }
 
