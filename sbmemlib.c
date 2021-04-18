@@ -13,9 +13,12 @@
 
 // Defined the length randomly
 #define len 256
-
+ 
 //https://www.geeksforgeeks.org/buddy-memory-allocation-program-set-1-allocation/
 
+
+// Important One
+//https://stackoverflow.com/questions/29238015/creating-shared-memory-segments
 
 //mmap implementation
 //https://yandex.com/turbo/devsday.ru/s/blog/details/21607
@@ -23,23 +26,25 @@
 
 // Shared memory object
 // The attributes or the structure must be checked. 
-struct entry{
+typedef struct {
     pid_t pid;
     long baseAddress;
     long limit;
-};
+}block;
 
-
+block * p_map;
 
 int current_counter;
 int fd;
 struct entry **ptr;
-sem_t semvar;
 
+sem_t semvar;
+sem_t  *unknwnSem;
 
 
 int sbmem_init(int segsize){
-    current_counter = 0;
+    
+    
     // Removes the previous (if exist) shared memory.
     sem_wait(&semvar);
     if (shm_unlink( "/sharedMem" ))
@@ -50,7 +55,8 @@ int sbmem_init(int segsize){
     }
 
     fd = shm_open("/sharedMem",O_RDWR | O_CREAT, 0777 );
-
+    
+    
     if(fd == -1){
       printf("Error Open shared memory open \n");
       sem_post(&semvar);
@@ -64,9 +70,11 @@ int sbmem_init(int segsize){
         return -1;
     }
 
-    //Initializes the shared memory
-      ptr = mmap( 0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
-    if(ptr == MAP_FAILED){
+    //Initializes the shared memory mapps it to the p_map
+    // Size of the mapped segment.
+    p_map = (block *) mmap( 0, sizeof(block) * segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+
+    if(p_map == MAP_FAILED){
         printf( "Mmap failed: \n");
         sem_post(&semvar);
         return -1;
@@ -86,8 +94,13 @@ bool sbmem_remove (){
 
 
 int sbmem_open(){
-    //library mapped the shared segment.
-  
+     // Buffer size declared as 10
+
+    unknwnSem = sem_open("/empty_sem", O_CREAT, 0644, 10);
+    if (unknwnSem == SEM_FAILED) {
+     perror("Failed to open semphore for empty");
+     exit(-1);
+}
     return 0;
 }
 
