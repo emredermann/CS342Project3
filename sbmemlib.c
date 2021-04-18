@@ -39,8 +39,7 @@ typedef struct {
 block * p_map;
 int current_counter;
 int fd;
-struct entry **ptr;
-
+ 
 sem_t semvar;
 sem_t  *unknwnSem;
 int counter;
@@ -76,6 +75,7 @@ int sbmem_init(int segsize){
     //Initializes the shared memory mapps it to the p_map
     // Size of the mapped segment.
     p_map = (block *) mmap( 0, sizeof(block) * segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    p_map->next == NULL;
 
     if(p_map == MAP_FAILED){
         printf( "Mmap failed: \n");
@@ -113,16 +113,14 @@ int sbmem_open(){
 
 
 void *sbmem_alloc (int reqsize){
-    
-    //instead of malloc
+ 
     // ?????? not sure how much correct for allocation of the space.
-    struct entry * tmp = malloc( nextPower(reqsize));
-   
-    if (tmp != NULL){
+    
+    if (p_map != NULL){
          sem_wait(&semvar);
-         ptr[current_counter++] = tmp;
+        
          sem_post(&semvar);
-         return tmp;
+         return p_map;
         }
     printf("Memory could not allocated");
     return NULL;
@@ -146,10 +144,4 @@ void sbmem_free (void *ptr){
     free(ptr);
     sem_post(&semvar);
 }
-
-//OPTIONAL FOR THE PROJECT
-int sbmem_close (){
-    if(close( fd ) && munmap( ptr, len ))
-        return 1;
-    return -1;
-}
+ 
