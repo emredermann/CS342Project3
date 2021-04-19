@@ -104,7 +104,12 @@ block * freeNodeAllocator(block * head,int segSize){
     return NULL;
 }
 
+
+/*
+    Creates a new space according to the bigger egment size linkedlist situation.
+*/
 void createNewFreeSpace(block * headOfTheNextNode){
+    
     block * tmp = head;
     while(tmp->next != headOfTheNextNode)
         tmp = tmp->next;
