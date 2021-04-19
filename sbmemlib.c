@@ -13,7 +13,7 @@
 
 // Defined the length randomly
 #define len 256
- #define MINIMUN_SEGMENT_SIZE 512
+ #define SEGMENT_SIZE 512
 //https://www.geeksforgeeks.org/buddy-memory-allocation-program-set-1-allocation/
 //https://www.tutorialspoint.com/inter_process_communication/inter_process_communication_shared_memory.htm
 
@@ -22,6 +22,10 @@
 
 //mmap implementation
 //https://yandex.com/turbo/devsday.ru/s/blog/details/21607
+
+
+
+
 
 
 // Shared memory object
@@ -34,14 +38,105 @@ typedef struct {
     int limit;
     block * next;
     block * rear;
+    block * head;
 }block;
 
+
+block * head;
 
 block * p_map;
 int current_counter;
 int fd;
-
 int counter;
+
+
+/*
+Creates the 2 dimesional linkedlists one dimension.
+*/
+void linkedlistInit(){
+    //i =  means 512 memory size
+    block * tmpNode;
+    tmpNode->rear = NULL;
+    tmpNode->limit = 2;
+    // Address ??
+    //tmpNode->baseAddress =
+    head = tmpNode;
+
+    for (int i = 2; i < 10; i++)
+    {
+        block * newNode;
+        newNode->limit = pow(2,i);
+        newNode->next = NULL;
+        newNode->rear = tmpNode;
+        newNode->head = NULL;
+        tmpNode->next = newNode;
+        tmpNode = tmpNode->next;
+    }
+    
+    printf("Doubly linkedlist created succesfully");
+    
+}
+
+
+/*
+returns the pointer of the target memory space segment.
+Example:
+If the target seg size is 30 it returns the head of the 32.
+*/
+block* freeHeadPointerLocator(int segSize){
+     block *tmp = head;
+     while(tmp != NULL){
+         if(tmp->limit = nextPower(segSize)){
+             return tmp;
+         } 
+         tmp = tmp->next;
+     }
+     return NULL;
+}
+
+block * freeNodeAllocator(block * head,int segSize){
+    block * tmp = head;
+    if(tmp != NULL){
+        //deallocate the tmp and return the deallocated tmp as a free space must be used.
+        return tmp;
+    }
+    //Means there is no free space
+    return NULL;
+}
+
+void createNewFreeSpace(block * headOfTheNextNode){
+    block * tmp = head;
+    while(tmp->next != headOfTheNextNode)
+        tmp = tmp->next;
+
+    //Deallocate - delete one node from headOfTheNextNode and create 2 node to the tmp.
+        block * current =tmp->next->head;
+        while (current->next != NULL ){
+              current = current->next; 
+        }
+        if(current == tmp->next->head){
+            // Means empty linkedlist
+        }else{
+            // Deletes one (where current node pointer is) node from the original linkedlist.
+            current = current->rear;
+            tmp = current->next;
+            current->next = NULL;
+            delete(tmp); 
+        }
+       
+    // Newly created nodes for the one lower segment.
+    block * newNode,* secondNewNode;
+    
+    newNode->limit = tmp->limit;
+    newNode->rear = tmp->head;
+    tmp->head->next = newNode;
+    
+    secondNewNode->limit = tmp->limit;
+    secondNewNode->next = NULL;
+    secondNewNode->rear = newNode;
+    newNode->next = secondNewNode;
+}
+
 
 int sbmem_init(int segsize){
     
@@ -50,7 +145,6 @@ int sbmem_init(int segsize){
     if (shm_unlink( "/sharedMem" ))
     {
         printf("Shared memory unlinked.");
-
         return 0;
     }
 
@@ -72,6 +166,7 @@ int sbmem_init(int segsize){
 
     //Initializes the shared memory mapps it to the p_map
     // Size of the mapped segment.
+
     p_map = (block *) mmap( 0, sizeof(block) * nextPower(segsize), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     p_map->next == NULL;
 
@@ -92,23 +187,14 @@ bool sbmem_remove (){
 
 
 int sbmem_open(){
-    int pid = fork();
-
-    if(pid == 0){
-
-    }else{
-
-    }
+    
     return 0;
 }
 
 
 void *sbmem_alloc (int reqsize){
  
-
-        
     if (p_map != NULL){
-
          return p_map;
         }
     printf("Memory could not allocated");
