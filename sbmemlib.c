@@ -96,9 +96,7 @@ bool sbmem_remove (){
 int sbmem_open(){
 
  
-int virtualAddress = p_map + 4;
 
-p_map = (block *) mmap( virtualAddress, sizeof(block) * nextPower(MINIMUN_SEGMENT_SIZE), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
 
     
     return 0;
@@ -107,7 +105,6 @@ p_map = (block *) mmap( virtualAddress, sizeof(block) * nextPower(MINIMUN_SEGMEN
 
 void *sbmem_alloc (int reqsize){
  
-    
     if (p_map != NULL){
 
          return p_map;
@@ -130,8 +127,6 @@ int nextPower(int num){
 
 
 void sbmem_free (void *ptr){
-
     free(ptr);
-
 }
  
