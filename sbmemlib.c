@@ -13,7 +13,7 @@
 
 // Defined the length randomly
 #define len 256
- 
+ #define MINIMUN_SEGMENT_SIZE 512
 //https://www.geeksforgeeks.org/buddy-memory-allocation-program-set-1-allocation/
 //https://www.tutorialspoint.com/inter_process_communication/inter_process_communication_shared_memory.htm
 
@@ -96,16 +96,17 @@ bool sbmem_remove (){
 int sbmem_open(){
 
  
+int virtualAddress = p_map + 4;
 
-//int pid = fork();
-   
+p_map = (block *) mmap( virtualAddress, sizeof(block) * nextPower(MINIMUN_SEGMENT_SIZE), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+
+    
     return 0;
 }
 
 
 void *sbmem_alloc (int reqsize){
  
-    // ?????? not sure how much correct for allocation of the space.
     
     if (p_map != NULL){
 
