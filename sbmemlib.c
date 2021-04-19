@@ -39,7 +39,7 @@ typedef struct {
 block * p_map;
 int current_counter;
 int fd;
- 
+block head;
 
 int counter;
 
@@ -87,9 +87,7 @@ int sbmem_init(int segsize){
 // Have doubts about 
 // The created semaphore(s) will be removed as well. 
 bool sbmem_remove (){
-    if(shm_unlink("/sharedMem"))
-        return true;
-    return false;
+   
 }
 
 
@@ -105,6 +103,11 @@ int sbmem_open(){
 
 void *sbmem_alloc (int reqsize){
  
+
+    int i;
+    int x = nextPower(reqsize);
+        
+
     if (p_map != NULL){
 
          return p_map;
@@ -130,3 +133,8 @@ void sbmem_free (void *ptr){
     free(ptr);
 }
  
+ int sbmem_close(){
+      if(shm_unlink("/sharedMem"))
+        return 1;
+    return 0;
+ }
