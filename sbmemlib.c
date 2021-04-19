@@ -33,13 +33,13 @@ typedef struct {
     // Limit of the block
     int limit;
     block * next;
+    block * rear;
 }block;
 
 
 block * p_map;
 int current_counter;
 int fd;
-block head;
 
 int counter;
 
@@ -92,11 +92,13 @@ bool sbmem_remove (){
 
 
 int sbmem_open(){
+    int pid = fork();
 
- 
+    if(pid == 0){
 
+    }else{
 
-    
+    }
     return 0;
 }
 
@@ -104,10 +106,7 @@ int sbmem_open(){
 void *sbmem_alloc (int reqsize){
  
 
-    int i;
-    int x = nextPower(reqsize);
         
-
     if (p_map != NULL){
 
          return p_map;
