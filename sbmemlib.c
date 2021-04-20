@@ -41,10 +41,16 @@ typedef struct {
 
 
 block * head;
+
+block * current_pointer;
 block * p_map;
 int current_counter;
 int fd;
 int counter;
+bool activeProcess;
+int virtualAddress;
+
+
 
 
 /*
@@ -142,7 +148,9 @@ void createNewFreeSpace(block * headOfTheNextNode){
 
 
 int sbmem_init(int segsize){
-    
+
+    activeProcess = false;
+    virtualAddress = 0;
     // Removes the previous (if exist) shared memory.
     if (shm_unlink( "/sharedMem" ))
     {
@@ -167,11 +175,10 @@ int sbmem_init(int segsize){
 
     //Initializes the shared memory mapps it to the p_map
     // Size of the mapped segment.
-
-    p_map = (block *) mmap( 0, sizeof(block) * 9, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    p_map = (block *) mmap( virtualAddress, sizeof(block) * 9, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    virtualAddress += sizeof(block) * 9;
     linkedlistInit(p_map);
     
-
     if(p_map == MAP_FAILED){
         printf( "Mmap failed: \n");
         return -1;
@@ -189,7 +196,12 @@ bool sbmem_remove (){
 
 
 int sbmem_open(){
-    
+    if(activeProcess){
+        return true;
+    }
+    current_pointer = (block *) mmap( virtualAddress, sizeof(block), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    current_pointer->baseAddress = virtualAddress;
+    activeProcess = true;
     return 0;
 }
 
@@ -218,10 +230,12 @@ int nextPower(int num){
 
 void sbmem_free (void *ptr){
     free(ptr);
+    activeProcess = false;
 }
  
  int sbmem_close(){
-      if(shm_unlink("/sharedMem"))
+    activeProcess = false;
+    if(shm_unlink("/sharedMem"))
         return 1;
     return 0;
  }
