@@ -24,7 +24,9 @@
 //mmap implementation
 //https://yandex.com/turbo/devsday.ru/s/blog/details/21607
 
-
+//About mmap and shm_open for sharing memory between processes
+//https://stackoverflow.com/questions/4991533/sharing-memory-between-processes-through-the-use-of-mmap
+//https://stackoverflow.com/questions/15029053/share-process-memory-with-mmap
 
 // Shared memory object
 // The attributes or the structure must be checked. 
