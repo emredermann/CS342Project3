@@ -50,24 +50,24 @@ int counter;
 /*
 Creates the 2 dimesional linkedlists one dimension.
 */
-void linkedlistInit(){
+void linkedlistInit(block* target){
     //i =  means 512 memory size
-    block * tmpNode;
-    tmpNode->rear = NULL;
-    tmpNode->limit = 2;
+    block * target;
+    target->rear = NULL;
+    target->limit = 2;
     // Address ??
     //tmpNode->baseAddress =
-    head = tmpNode;
+    head = target;
 
     for (int i = 2; i < 10; i++)
     {
         block * newNode;
         newNode->limit = pow(2,i);
         newNode->next = NULL;
-        newNode->rear = tmpNode;
+        newNode->rear = target;
         newNode->head = NULL;
-        tmpNode->next = newNode;
-        tmpNode = tmpNode->next;
+        target->next = newNode;
+        target = target->next;
     }
     
     printf("Doubly linkedlist created succesfully");
@@ -171,6 +171,7 @@ int sbmem_init(int segsize){
     // Size of the mapped segment.
 
     p_map = (block *) mmap( 0, sizeof(block) * 9, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    linkedlistInit(p_map);
     
 
     if(p_map == MAP_FAILED){
