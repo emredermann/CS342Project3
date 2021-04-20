@@ -197,10 +197,11 @@ bool sbmem_remove (){
 
 int sbmem_open(){
     if(activeProcess){
-        return true;
+        return -1;
     }
     current_pointer = (block *) mmap( virtualAddress, sizeof(block), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     current_pointer->baseAddress = virtualAddress;
+    
     activeProcess = true;
     return 0;
 }
