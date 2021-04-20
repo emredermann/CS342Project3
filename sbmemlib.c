@@ -13,7 +13,8 @@
 
 // Defined the length randomly
 #define len 256
- #define SEGMENT_SIZE 512
+#define SEGMENT_SIZE 512
+
 //https://www.geeksforgeeks.org/buddy-memory-allocation-program-set-1-allocation/
 //https://www.tutorialspoint.com/inter_process_communication/inter_process_communication_shared_memory.htm
 
@@ -22,9 +23,6 @@
 
 //mmap implementation
 //https://yandex.com/turbo/devsday.ru/s/blog/details/21607
-
-
-
 
 
 
@@ -43,7 +41,6 @@ typedef struct {
 
 
 block * head;
-
 block * p_map;
 int current_counter;
 int fd;
@@ -93,6 +90,7 @@ block* freeHeadPointerLocator(int segSize){
      }
      return NULL;
 }
+
 
 block * freeNodeAllocator(block * head,int segSize){
     block * tmp = head;
@@ -172,8 +170,8 @@ int sbmem_init(int segsize){
     //Initializes the shared memory mapps it to the p_map
     // Size of the mapped segment.
 
-    p_map = (block *) mmap( 0, sizeof(block) * nextPower(segsize), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
-    p_map->next == NULL;
+    p_map = (block *) mmap( 0, sizeof(block) * 9, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    
 
     if(p_map == MAP_FAILED){
         printf( "Mmap failed: \n");
