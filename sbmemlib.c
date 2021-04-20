@@ -49,7 +49,7 @@ int fd;
 int counter;
 bool activeProcess;
 int virtualAddress;
-
+sem_t mutex;
 
 
 
@@ -151,6 +151,7 @@ int sbmem_init(int segsize){
 
     activeProcess = false;
     virtualAddress = 0;
+    sem_init(&mutex, 1, 0);
     // Removes the previous (if exist) shared memory.
     if (shm_unlink( "/sharedMem" ))
     {
@@ -172,7 +173,6 @@ int sbmem_init(int segsize){
         printf("ftruncate error \n");
         return -1;
     }
-
     //Initializes the shared memory mapps it to the p_map
     // Size of the mapped segment.
     p_map = (block *) mmap( virtualAddress, sizeof(block) * 9, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
@@ -191,7 +191,8 @@ int sbmem_init(int segsize){
 // Have doubts about 
 // The created semaphore(s) will be removed as well. 
 bool sbmem_remove (){
-   
+   sem_wait(&mutex);
+   sem_post(&mutex);
 }
 
 
@@ -199,10 +200,15 @@ int sbmem_open(){
     if(activeProcess){
         return -1;
     }
+    sem_wait(&mutex);
+    //What is was the reason of the virtual address.
+    //What was the aim?
+    
     current_pointer = (block *) mmap( virtualAddress, sizeof(block), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     current_pointer->baseAddress = virtualAddress;
     
     activeProcess = true;
+    sem_post(&mutex);
     return 0;
 }
 
@@ -230,12 +236,16 @@ int nextPower(int num){
 
 
 void sbmem_free (void *ptr){
+    sem_wait(&mutex);
     free(ptr);
     activeProcess = false;
+    sem_post(&mutex);
 }
  
  int sbmem_close(){
+     sem_wait(&mutex);
     activeProcess = false;
+    sem_post(&mutex);
     if(shm_unlink("/sharedMem"))
         return 1;
     return 0;
