@@ -82,4 +82,10 @@ void linkedlistInit(struct block * target){
 
 
 
-void sbmem_remove (){}
+void sbmem_remove (){
+    if(shm_unlink ("/sharedMem")){
+        printf("Removed successfully");
+    }else{
+        printf("Error in remove");
+    }
+}
