@@ -16,6 +16,10 @@ struct block{
     struct block * next;
 };
 
+block * p_map;
+bool activeProcess;
+int virtualAddress;
+
 int sbmem_init (int segsize){
     int fd;
     if (shm_unlink( "/sharedMem" ))
@@ -39,4 +43,16 @@ int sbmem_init (int segsize){
         printf("ftruncate error \n");
         return -1;
     }
+    //Initializes the shared memory mapps it to the p_map
+    // Size of the mapped segment.
+    p_map = (block *) mmap( virtualAddress, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    virtualAddress += sizeof(block) * 9;
+    //linkedlistInit(p_map);
+    
+    if(p_map == MAP_FAILED){
+        printf( "Mmap failed: \n");
+        return -1;
+    }
+    return 0;
+    
 }
