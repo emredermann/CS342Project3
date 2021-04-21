@@ -100,7 +100,6 @@ void sbmem_remove (){
 
 int sbmem_open(){
 
-
     fd = shm_open("/sharedMem",O_RDWR , 0666 );   
     page_addr =(struct block *) mmap(0,32768,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0); 
     if(page_addr == MAP_FAILED){
@@ -108,6 +107,11 @@ int sbmem_open(){
        return -1;
     }
     SEG_SIZE = page_addr->limit;
+    if(page_addr->no_active_process > 10){
+        printf("Processes exceeded the limit");
+        return -1;
+        
+    }
     page_addr = (struct block *) mmap(0,SEG_SIZE,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
     if(page_addr == MAP_FAILED){
        printf( "Mmap failed: \n");
@@ -116,8 +120,7 @@ int sbmem_open(){
  
     page_addr->no_active_process++;
     printf("Opened library for allocation \npid :%s ",getpid());
-
-
+    return 0;
 
 }
 
