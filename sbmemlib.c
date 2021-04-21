@@ -155,13 +155,13 @@ void createNewFreeSpace(block * headOfTheNextNode){
     Creates a new space according to the bigger segment size linkedlist situation.
 */
 void createNewFreeSpace(block * headOfTheNextNode){
-    
-    block * tmp = head;
-    while(tmp->next != headOfTheNextNode) {
-        tmp = tmp->next;
+
+	block * tmp = head;
+	while(tmp->next != headOfTheNextNode) {
+		tmp = tmp->next;
 	}
 
-    //Deallocate - delete one node from tmp->head and create 2 nodes at tmp->next.
+	//Deallocate - delete one node from tmp->head and create 2 nodes at tmp->next.
 	block * current = tmp->head;
 
 	// Deletes one (where current node pointer is) node from the original linkedlist.
@@ -170,43 +170,43 @@ void createNewFreeSpace(block * headOfTheNextNode){
 	current->next = NULL;
 	delete(current); 
 	current = NULL;
-	
+
 	tmp = tmp->next;
 
-    // Newly created nodes for the next segment.
-    block * newNode,* secondNewNode;
-    
-    newNode->limit = tmp->limit;
-    newNode->rear = NULL;
+	// Newly created nodes for the next segment.
+	block * newNode,* secondNewNode;
+
+	newNode->limit = tmp->limit;
+	newNode->rear = NULL;
 	newNode->pid = getpid();
 	newNode->address = newNode;
-    tmp->head = newNode;
-    
-    secondNewNode->limit = tmp->limit;
+	tmp->head = newNode;
+
+	secondNewNode->limit = tmp->limit;
 	secondNewNode->pid = getpid();
 	secondNewNode->address = secondNewNode;
-    secondNewNode->next = NULL;
-    secondNewNode->rear = newNode;
-    newNode->next = secondNewNode;
+	secondNewNode->next = NULL;
+	secondNewNode->rear = newNode;
+	newNode->next = secondNewNode;
 }
 
 /*
 	Deallocates buddy node from free space list and allocated to shared memory
 */
 block *allocateBuddyNodeToSharedMem(block * ptr){
-    block * tmp = ptr->head;
-	
-    if(tmp == NULL){
+	block * tmp = ptr->head;
+
+	if(tmp == NULL){
 		//no free space
 		return NULL;
-    }
-	
+	}
+
 	ptr->head = ptr->head->next;
 	ptr->head->rear = NULL;
-	
+
 	space_allocated += tmp->limit;
 	free_space -= tmp->limit;
-	
+
 	//Add node to p_map linked list
 	if (p_map == NULL){ //if empty list add directly to head
 		p_map = tmp;
@@ -218,25 +218,25 @@ block *allocateBuddyNodeToSharedMem(block * ptr){
 		tmp->rear = NULL;
 		p_map = tmp;
 	}
-	
+
 	return tmp; //Burada p_map returnlemek daha mantıklı olabilir
-    
+
 } 
 
 void *sbmem_alloc (int reqsize){
 	
 	int realsize = 8 + reqsize;
- 
-    block *ptr = freeHeadPointerLocator(realsize);
+
+	block *ptr = freeHeadPointerLocator(realsize);
 	block *tmp = head;
 	int required_size = nextPower(realsize);
-	
+
 	if (ptr->head == NULL && free_space == 0) {
 		printf("Memory could not be allocated");
 		return NULL;
 	}
 	else if (ptr->head == NULL && free_space > realsize) {
-		
+
 		while (tmp != ptr) {
 			if (free_space >= tmp->limit && tmp->head != NULL){
 				createNewFreeSpace(tmp);
@@ -244,9 +244,9 @@ void *sbmem_alloc (int reqsize){
 			tmp = tmp->next;
 		}
 	}
-	
+
 	tmp = allocateBuddyNodeToSharedMem(ptr);
-	
+
 	return tmp;
     
 }
