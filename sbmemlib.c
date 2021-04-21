@@ -228,11 +228,11 @@ block *allocateBuddyNodeToSharedMem(block * ptr){
 
 void *sbmem_alloc (int reqsize){
 	
-	int realsize =  reqsize -  8 ;
+	int realsize = 8 + reqsize;
 
 	block *ptr = freeHeadPointerLocator(realsize);
 	block *tmp = head;
-	int required_size = nextPower(reqsize);
+	int required_size = nextPower(realsize);
 
 	if (ptr->head == NULL && free_space == 0) {
 		printf("Memory could not be allocated");
