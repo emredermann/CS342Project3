@@ -279,7 +279,7 @@ int sbmem_init(int segsize){
       return -1;
    }  
     /* Set the memory object's size  */
-    //The size of part ??
+    //Max size
     if( ftruncate( fd, sizeof( nextPower(segsize) * 9) ) == -1 ) {
         printf("ftruncate error \n");
         return -1;

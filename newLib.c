@@ -35,7 +35,7 @@ int sbmem_init (int segsize){
        printf("Error");
        exit(-1);
    }
-    if( ftruncate( fd,  ) == -1 ) {
+    if( ftruncate( fd,  segsize) == -1 ) {
         printf("ftruncate error \n");
         return -1;
     }
