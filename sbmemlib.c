@@ -48,6 +48,7 @@ block * current_pointer;
 block * p_map;
 int current_counter;
 int fd;
+int pid;
 int counter;
 bool activeProcess;
 int virtualAddress;
@@ -150,7 +151,7 @@ void createNewFreeSpace(block * headOfTheNextNode){
 
 
 int sbmem_init(int segsize){
-
+    pid = 0;
     activeProcess = false;
     virtualAddress = 0;
     sem_init(&mutex, 1, 0);
@@ -208,8 +209,9 @@ int sbmem_open(){
     
     current_pointer = (block *) mmap( virtualAddress, sizeof(block), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     current_pointer->baseAddress = virtualAddress;
-    
+    current_pointer->pid = pid;
     activeProcess = true;
+    pid ++;
     sem_post(&mutex);
     return 0;
 }
@@ -239,6 +241,7 @@ int nextPower(int num){
 
 void sbmem_free (void *ptr){
     sem_wait(&mutex);
+    pid--;
     free(ptr);
     activeProcess = false;
     sem_post(&mutex);
