@@ -69,8 +69,6 @@ void linkedlistInit(struct block * target){
     new_block->address = 8;
     target->next = new_block;
     
-    
-    
     while(pow(2,i)< SEG_SIZE){
         struct block * tmp_block;
         tmp_block->limit=pow(2,i);
