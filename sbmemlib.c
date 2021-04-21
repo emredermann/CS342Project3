@@ -355,7 +355,7 @@ void sbmem_free (void *ptr){
     //free(ptr);
 
 
-    block * ptr = 
+//    block * ptr = 
 
 
     activeProcess = false;
