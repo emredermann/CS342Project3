@@ -192,6 +192,7 @@ void createNewFreeSpace(block * headOfTheNextNode){
 	newNode->next = secondNewNode;
 }
 
+
 /*
 	Deallocates buddy node from free space list and allocated to shared memory
 */
@@ -225,6 +226,8 @@ block *allocateBuddyNodeToSharedMem(block * ptr){
 	return tmp; //Burada p_map returnlemek daha mantıklı olabilir
 
 } 
+
+
 
 void *sbmem_alloc (int reqsize){
 	
@@ -352,10 +355,6 @@ will be part of the free memory in the segment.
 void sbmem_free (void *ptr){
     sem_wait(&mutex);
     pid--;
-    //free(ptr);
-
-
-//    block * ptr = 
 
 
     activeProcess = false;
