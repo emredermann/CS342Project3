@@ -228,11 +228,11 @@ block *allocateBuddyNodeToSharedMem(block * ptr){
 
 void *sbmem_alloc (int reqsize){
 	
-	int realsize = 8 + reqsize;
+	int realsize =  reqsize -  8 ;
 
 	block *ptr = freeHeadPointerLocator(realsize);
 	block *tmp = head;
-	int required_size = nextPower(realsize);
+	int required_size = nextPower(reqsize);
 
 	if (ptr->head == NULL && free_space == 0) {
 		printf("Memory could not be allocated");
@@ -247,9 +247,7 @@ void *sbmem_alloc (int reqsize){
 			tmp = tmp->next;
 		}
 	}
-
 	tmp = allocateBuddyNodeToSharedMem(ptr);
-
 	return tmp;
     
 }
@@ -353,12 +351,12 @@ void sbmem_free (void *ptr){
     sem_wait(&mutex);
     pid--;
     //free(ptr);
-    free(ptr);
-    createNewFreeSpace((block*) ptr);
+
+
+    block * ptr = 
+
+
     activeProcess = false;
-
-
-
     sem_post(&mutex);
 }
  
