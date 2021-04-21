@@ -1,6 +1,6 @@
 #include <unistd.h>
 #include <stdlib.h>
-#include "sbmem.h"
+#include "sbmemlib.c"
  
 #define SEGMENT_SIZE 256
 

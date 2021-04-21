@@ -36,20 +36,21 @@ typedef struct {
     int baseAddress;
     // Limit of the block
     int limit;
-    block * next;
-    block * rear;
-    block * head;
+    struct block * next;
+    struct block * rear;
+    struct block * head;
 }block;
 
 
 block * head;
-
 block * current_pointer;
 block * p_map;
 int current_counter;
 int fd;
 int pid;
 int counter;
+int space_allocated = 0;
+int free_space;
 bool activeProcess;
 int virtualAddress;
 sem_t mutex;
@@ -61,10 +62,10 @@ Creates the 2 dimesional linkedlists one dimension.
 */
 void linkedlistInit(block* target){
     //i =  means 512 memory size
-    block * target;
+    
     target->rear = NULL;
     target->limit = 2;
-    // Address ??
+    
     //tmpNode->baseAddress =
     head = target;
 
@@ -150,7 +151,6 @@ void createNewFreeSpace(block * headOfTheNextNode){
 }
 */
 
-
 /*
     Creates a new space according to the bigger segment size linkedlist situation.
 */
@@ -165,7 +165,9 @@ void createNewFreeSpace(block * headOfTheNextNode){
 	block * current = tmp->head;
 
 	// Deletes one (where current node pointer is) node from the original linkedlist.
-	current->next->rear = NULL;
+    block * r = current;
+    r = r->next;
+    r->rear = NULL;
 	tmp->head = current->next;
 	current->next = NULL;
 	delete(current); 
@@ -179,12 +181,12 @@ void createNewFreeSpace(block * headOfTheNextNode){
 	newNode->limit = tmp->limit;
 	newNode->rear = NULL;
 	newNode->pid = getpid();
-	newNode->address = newNode;
+	newNode->baseAddress = newNode;
 	tmp->head = newNode;
 
 	secondNewNode->limit = tmp->limit;
 	secondNewNode->pid = getpid();
-	secondNewNode->address = secondNewNode;
+	secondNewNode->baseAddress = secondNewNode;
 	secondNewNode->next = NULL;
 	secondNewNode->rear = newNode;
 	newNode->next = secondNewNode;
@@ -200,9 +202,10 @@ block *allocateBuddyNodeToSharedMem(block * ptr){
 		//no free space
 		return NULL;
 	}
-
-	ptr->head = ptr->head->next;
-	ptr->head->rear = NULL;
+    block * t;
+    t = ptr->head;
+	t = t->next;
+	t->rear = NULL;
 
 	space_allocated += tmp->limit;
 	free_space -= tmp->limit;
@@ -255,6 +258,7 @@ int sbmem_init(int segsize){
     pid = 0;
     activeProcess = false;
     virtualAddress = 0;
+    space_allocated = 512;
     sem_init(&mutex, 1, 0);
     // Removes the previous (if exist) shared memory.
     if (shm_unlink( "/sharedMem" ))
@@ -289,7 +293,6 @@ int sbmem_init(int segsize){
     }
     return 0;
 }
-
 
 
 // Have doubts about 
@@ -341,16 +344,26 @@ int nextPower(int num){
 }
 
 
+/*
+This function will deallocate the memory space
+allocated earlier and pointed by the pointer ptr. The deallocated memory space
+will be part of the free memory in the segment.
+*/
 void sbmem_free (void *ptr){
     sem_wait(&mutex);
     pid--;
+    //free(ptr);
     free(ptr);
+    createNewFreeSpace((block*) ptr);
     activeProcess = false;
+
+
+
     sem_post(&mutex);
 }
  
  int sbmem_close(){
-     sem_wait(&mutex);
+    sem_wait(&mutex);
     activeProcess = false;
     sem_post(&mutex);
     if(shm_unlink("/sharedMem"))
