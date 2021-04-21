@@ -14,19 +14,21 @@
 struct block{
     int address;
     int limit;
+    int no_active_process;
     struct block * next;
 };
 
+struct block * page_addr;
 struct block * p_map;
-bool activeProcess;
 int virtualAddress;
 int SEG_SIZE;
 int fd;
 
 
+
 int sbmem_init (int segsize){
     
-
+    
     SEG_SIZE = segsize;
     if (shm_unlink( "/sharedMem" ))
     {
@@ -51,7 +53,11 @@ int sbmem_init (int segsize){
     }
     //Initializes the shared memory mapps it to the p_map
     p_map = (struct block *) mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    p_map->limit = SEG_SIZE;
+    p_map->address = 0;
+    p_map->no_active_process = 0;
 
+  //  p_map = p_map->next;
 
     linkedlistInit(p_map);
     
@@ -80,7 +86,6 @@ void linkedlistInit(struct block * target){
         new_block->next = tmp_block;
         new_block = tmp_block;
     }    
-
 }
 
 
@@ -94,17 +99,27 @@ void sbmem_remove (){
 
 
 int sbmem_open(){
-    if(no_of_processes >= 10){
-        return -1;
+
+
+    fd = shm_open("/sharedMem",O_RDWR , 0666 );   
+    page_addr =(struct block *) mmap(0,32768,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0); 
+    if(page_addr == MAP_FAILED){
+       printf( "Mmap failed: \n");
+       return -1;
     }
-    pid[no_of_processes++] = getpid();
+    SEG_SIZE = page_addr->limit;
+    page_addr = (struct block *) mmap(0,SEG_SIZE,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
+    if(page_addr == MAP_FAILED){
+       printf( "Mmap failed: \n");
+       return -1;
+    }
+ 
+    page_addr->no_active_process++;
+    printf("Opened library for allocation \npid :%s ",getpid());
 
-    // ADA
-    p_map = (struct block *) mmap( virtualAddress, SEG_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+
+
 }
-
-
-
 
 
 
@@ -143,5 +158,5 @@ void sbmem_free (void *ptr){
 
 
 int sbmem_close (){
-    no_of_processes--;
+
 }
