@@ -243,6 +243,14 @@ struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2){
 }
 
 
+
+
+
+
+
 int sbmem_close (){
-    
+    //munmap();
+    if(shm_unlink("/sharedMem"))
+        return 1;
+    return 0;
 }
