@@ -58,7 +58,7 @@ int sbmem_init (int segsize){
        printf("Error");
        exit(-1);
    }
-   printf("İbefore truncate************************************** \n");
+   printf("Before truncate************************************** \n");
     if( ftruncate( fd,  segsize) == -1 ) {
         printf("ftruncate error \n");
         return -1;
