@@ -78,6 +78,7 @@ int sbmem_init (int segsize){
     p_map = (struct block *) ptr;
     p_map->limit = SEG_SIZE;
     p_map->location = 0;
+    p_map->next = -1;
    
     
     return 0;
@@ -222,14 +223,25 @@ void *sbmem_alloc (int reqsize){
     
     // Tam fit varsa gireceği alan pointer
     if(tmp->limit == realsize){    
-            
-        
-        
-        return ptr;
+        //tmp = tmp + sizeof(struct block);
+        struct block * ptr = page_addr + tmp->location;
+        ptr->limit = realsize;
+        ptr = ptr + sizeof(struct block);
+        return (void *) ptr;
     }
     
-    // Tam fit yok alan gireceği alan pointer
+
+
+
+    // Tam fit yok alan var gireceği alanın pointer
     
+
+
+
+
+
+
+
     /*
     if (tmp->limit !=){
      }else if (tmp == NULL && tmp_size == true)
@@ -249,29 +261,38 @@ void *sbmem_alloc (int reqsize){
  
  }
 
-struct block* DivideBlock( int realsize){
+
+
+
+
+
+struct block* DivideBlock( int realsize,int max){
     
-	struct  block * cur = page_addr;
-        while (cur->next->limit <= realsize){cur = cur->next;}
+	    void * cur = page_addr+sizeof(struct block);
+        while (((struct block *)cur)->limit == max){cur = cur + sizeof(struct block);}
         
-        int tmp_address = cur->next->address;
-        int tmp_limit = cur->next->limit;
-        struct block * tmp_next = cur->next->next;
+
+        int tmp_location = ((struct block *)cur)->location;
+        int tmp_limit = ((struct block *)cur)->limit;
+          
         
-        struct block * tmp_delete = cur->next;
+
 
         struct  block * new_block_1;
         struct  block * new_block_2;
         
         new_block_1->limit = tmp_limit / 2;
         new_block_2->limit = tmp_limit / 2;
-        new_block_1->address = tmp_address;
-        new_block_2->address = tmp_address + (tmp_limit / 2);
+        
+        
+        new_block_1->location = tmp_location;
+        new_block_2->location = tmp_location + (tmp_limit / 2);
 
-        cur->next = new_block_1;
+
+        cur -> next = new_block_1;
         new_block_1->next = new_block_2;
         new_block_2->next = tmp_next;
-   	//sem_post(&mutex);
+ 
         return new_block_1;
     
 }
