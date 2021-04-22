@@ -94,7 +94,7 @@ void linkedlistInit(struct block * target){
     }    
 }
 
-/*
+ 
 void sbmem_remove(){
     
     if(shm_unlink ("/sharedMem")){
@@ -104,7 +104,7 @@ void sbmem_remove(){
     }
     
 }
-*/
+ 
 int sbmem_open(){
     fd = shm_open("/sharedMem",O_RDWR , 0666 );   
     page_addr =(struct block *) mmap(0,32768,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0); 
