@@ -10,7 +10,7 @@
 #include <semaphore.h>
 #include <sys/mman.h>
 
-/* COmmands
+/* Commands
 gcc -o create sbmemlib.c create_memory_sb.c  -lm -lrt -lpthread
 gcc -o destroy sbmemlib.c destroy_memory_sb.c  -lm -lrt -lpthread
 */
@@ -18,13 +18,13 @@ gcc -o destroy sbmemlib.c destroy_memory_sb.c  -lm -lrt -lpthread
 
 
 struct block{
-    int address;
+    int location;
     int limit;
+    int next;
     int no_active_process;
-    struct block * next;
 };
 
-struct block * page_addr;
+void * page_addr;
 struct block * p_map;
 const char * sharedMemName = "/sharedMem";
 const int minimum_segsize = 32768;
@@ -34,17 +34,11 @@ int fd;
 int pid = -1;
 sem_t mutex;
  
-struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2);
-struct  block* DivideBlock( int realsize);
-void linkedlistInit(struct block * target);
-int nextPower(int num);
-
+ 
 
 
 int sbmem_init (int segsize){
 
-    
-    
     printf("*********************************************** \n");
     SEG_SIZE = segsize;
     if (shm_unlink( sharedMemName ) != -1)
@@ -74,50 +68,46 @@ int sbmem_init (int segsize){
     
     //Initializes the shared memory mapps it to the p_map
     printf("Before mmap*************************************** \n");
-    p_map = (struct block *) mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    void * ptr =  mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     
     if(p_map == MAP_FAILED){
         printf( "Mmap failed !!: \n");
         return -1;
     } printf("after mmap*************************************** \n");
 
+    p_map = (struct block *) ptr;
     p_map->limit = SEG_SIZE;
-    p_map->address = 0;
-    p_map->no_active_process = 0;
-
-    printf("p_map %d\n", p_map);
-    printf("p_map->address %d\n", p_map->address);
-    printf("p_map->limit %d\n", p_map->limit);
-    printf("p_map->next %d\n", p_map->next);
+    p_map->location = 0;
+   
     
     return 0;
     
 }
 
 
-void linkedlistInit(struct block * target){
+void linkedlistInit(){
 
     int i  = 7;
+    void * ptr = page_addr;
+    struct block * new_block ;
     
-    printf("newblock init linkedlist\n");
+    new_block->location = ptr;
+    new_block->next = ptr + sizeof(struct block);
+    ptr = ptr + sizeof(struct block);
+
     
-    struct block * new_block = target->next;
-    printf("newblock init linkedlist2\n");
     int limit = pow(2,i);
-    int address = target->address + target->limit;
+    new_block->limit = limit;    
     
-    new_block->limit = limit;
      
-    target->next = new_block;
-    printf("Inside linkedlist INIT\n");
     while(pow(2,i)< SEG_SIZE){
         
         struct block * tmp_block;
         tmp_block->limit = pow(2,i);
-        tmp_block->address = new_block->address + new_block->limit;
+        tmp_block->location = ptr;
         i++;
-        new_block->next = tmp_block;
-        new_block = tmp_block;
+        tmp_block->next = ptr + sizeof(struct block);
+        ptr = ptr  + tmp_block->limit;
     }    
 }
 
@@ -138,37 +128,30 @@ int sbmem_open(){
     sem_wait(&mutex);
     fd = shm_open(sharedMemName,O_RDWR , 0666 );
     
-    printf("OPENA GİRDİK YEĞEN\n");
-    page_addr = (struct block *) mmap(0, minimum_segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+     
+    page_addr = mmap(0, minimum_segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     
-    printf("PAGE ADDRESSİ ALDIK YEĞEN\n");
+ 
     
     if(page_addr == MAP_FAILED){
        printf( "Mmap failed: \n");
        sem_post(&mutex);
        return -1;
     }
+    struct block * tmp = (struct block *) page_addr;
     
-    printf("MAP FAİL ETMEDİ YEĞEN\n");
     
-    SEG_SIZE = page_addr->limit;
-    printf("segsize %d\n", SEG_SIZE);
-    if(page_addr->no_active_process > 10){
+    SEG_SIZE = tmp->limit;
+
+    if(tmp->no_active_process > 10){
         printf("Processes exceeded the limit");
         sem_post(&mutex);
         return -1;
         
     }
     
-    /*
-    int x = munmap(page_addr, minimum_segsize);
-    if(x == -1){
-       printf( "Munmap failed: \n");
-       return -1;
-    }
     
-    */
-    page_addr = (struct block *) mmap(0,SEG_SIZE,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
+    page_addr =  mmap(0,SEG_SIZE,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
     
     if(page_addr == MAP_FAILED){
        printf( "Mmap failed: \n");
@@ -176,25 +159,18 @@ int sbmem_open(){
        return -1;
     }
     
-    printf("PAGE ADDRESS BUDUR YEĞEN %d \n", page_addr);
+    printf("Page address is : %d \n", page_addr);
     
-    printf("MAP YİNE FAİL ETMEDİ YEĞEN\n");
     
     //**********************
     
+    linkedlistInit();
 
-    printf("page_addr %d\n", page_addr);
-    printf("page_addr->address %d\n", page_addr->address);
-    printf("page_addr->limit %d\n", page_addr->limit);
-    printf("page_addr->next %d\n", page_addr->next);
-    linkedlistInit(page_addr);
-
-    
-    printf("LİNKED LİSTİ KURDUM YEĞEN\n");
+    printf("Linked list called safely. \n");
 
     pid = getpid();
     printf("pid %d\n", pid);
-    page_addr->no_active_process++;
+    tmp->no_active_process++;
     printf("Opened library for allocation pid :%d \n",getpid());
     sem_post(&mutex);
     return 0;
@@ -202,7 +178,7 @@ int sbmem_open(){
 
 
 void *sbmem_alloc (int reqsize){
-	
+	sem_wait(&mutex);
     if(pid == -1){
         printf("U can not alloc before open in shared memory.");  
         return NULL;
@@ -213,23 +189,50 @@ void *sbmem_alloc (int reqsize){
         return NULL;
     }
     
-    //sem_wait(&mutex);
-    struct  block * tmp = page_addr;
-    bool tmp_size = false;
+     
+    struct  block * tmp = (struct block *) page_addr;
     struct  block * deleted_target;
-    
-    while((tmp != NULL) && (tmp->next->limit != realsize )){
-        if(tmp->next->limit  > realsize){
-            tmp_size = true;
+
+    // En uygun size
+    int max = -1;
+
+    /*
+        iSTEDĞİM SİZEDAN BÜYÜK EN KÜÇÜK & uygun olan size  
+    */
+    while( (tmp->next != -1 ) && (tmp->limit  != realsize) ){
+        if(max == -1 && tmp->limit >= realsize){
+            max = tmp->limit;
+        }else if ((tmp->limit >= realsize) && max > tmp->limit )
+        {
+            max = tmp->limit;
         }
-        tmp = tmp->next;
+        tmp = tmp + sizeof(struct block);
     }
     
-    if (tmp == NULL && tmp_size == false){
-        //sem_post(&mutex);
-        printf("No free space.");
-        return NULL;
-    }else if (tmp == NULL && tmp_size == true)
+    // Linkedlist tek node ise
+    if(max == -1){
+        if(tmp->limit >= realsize){
+            max = tmp->limit;
+        }else{
+               sem_post(&mutex);
+                printf("No free space.");
+                return NULL;        
+        }
+    }
+    
+    // Tam fit varsa gireceği alan pointer
+    if(tmp->limit == realsize){    
+            
+        
+        
+        return ptr;
+    }
+    
+    // Tam fit yok alan gireceği alan pointer
+    
+    /*
+    if (tmp->limit !=){
+     }else if (tmp == NULL && tmp_size == true)
      {
         struct block * ptr;
         do{
@@ -240,12 +243,14 @@ void *sbmem_alloc (int reqsize){
         deleted_target = tmp->next;
         tmp->next = deleted_target->next;
         deleted_target->next = NULL;
-        //sem_post(&mutex);
+        sem_post(&mutex);
         return deleted_target;
+ */
+ 
  }
 
 struct block* DivideBlock( int realsize){
-    	//sem_wait(&mutex);
+    
 	struct  block * cur = page_addr;
         while (cur->next->limit <= realsize){cur = cur->next;}
         

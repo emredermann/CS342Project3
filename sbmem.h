@@ -13,5 +13,5 @@ void sbmem_free (void *ptr);
 int sbmem_close ();
 struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2);
 struct  block* DivideBlock( int realsize);
-void linkedlistInit(struct block * target);
+void linkedlistInit();
 int nextPower(int num);
