@@ -1,17 +1,17 @@
-#include <stdio.h>
+include <stdio.h>
 #include <stdbool.h>
 #include <sys/stat.h>
 #include "sbmem.h"
  
 
-int main(int argc, char *argv[])
+int main() //Argümanları kaldırdım
 {
-    printf("Destroy başlıyoruz");
+    printf("Destroy başlıyoruz\n");
  
     
     sbmem_remove();
     
     
-    printf("Destroy kapatıyoruz");
+    printf("Destroy kapatıyoruz\n");
     return 0;
 }
