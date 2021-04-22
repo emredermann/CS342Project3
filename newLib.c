@@ -206,6 +206,7 @@ int nextPower(int num){
 
 
 void sbmem_free (void *ptr){
+
 struct  block * deleted_target = (struct block *) ptr;
  if(pid == -1){
         printf("U can not alloc before open in shared memory.");
@@ -217,12 +218,14 @@ struct  block * deleted_target = (struct block *) ptr;
         
     deleted_target->next = tmp->next;
     tmp->next = deleted_target;
-    while(tmp->next->limit == deleted_target->limit)
+    struct block * block_to_be_combined = deleted_target;
+
+
+// Infinite loop bak!!
+    while(block_to_be_combined->limit == block_to_be_combined->next->limit)
     {
-        deleted_target = combineBlocks(tmp,tmp->next);
-        tmp = tmp->next;
+        block_to_be_combined = combineBlocks(block_to_be_combined,block_to_be_combined->next);
     }
-    
     
 }
 struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2){
@@ -241,5 +244,5 @@ struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2){
 
 
 int sbmem_close (){
-
+    
 }
