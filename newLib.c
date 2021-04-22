@@ -205,34 +205,39 @@ int nextPower(int num){
 
 
 
-
-
-
-
-
 void sbmem_free (void *ptr){
-
+struct  block * deleted_target = (struct block *) ptr;
  if(pid == -1){
         printf("U can not alloc before open in shared memory.");
         return NULL;
     }   
-    }
+    
     struct  block * tmp = page_addr;
-
-    struct  block * deleted_target;
-    
-    while(tmp != NULL && tmp->next->limit != reqsize){tmp = tmp->next;}
-    
-    if (tmp == NULL){
-        printf("No free space.");
-        return NULL;
+    while(tmp != NULL && tmp->next <= deleted_target->limit){tmp = tmp->next;} 
+        
+    deleted_target->next = tmp->next;
+    tmp->next = deleted_target;
+    while(tmp->next->limit == deleted_target->limit)
+    {
+        deleted_target = combineBlocks(tmp,tmp->next);
+        tmp = tmp->next;
     }
-    deleted_target = tmp->next;
-    tmp->next = deleted_target->next;
-    deleted_target->next = NULL;
-    return deleted_target;
+    
+    
 }
+struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2){
+   
+    struct block * combined_block;
+    combined_block->address = ptr_1->address;
+    combined_block->limit = ptr_1->limit * 2;
+    combined_block->next = ptr_2->next;
+    delete(ptr_1); delete(ptr_2);
+    ptr_1 = NULL;ptr_2 = NULL;
+    return combined_block;
 
+    
+        
+}
 
 
 int sbmem_close (){
