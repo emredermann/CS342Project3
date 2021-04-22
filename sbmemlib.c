@@ -25,22 +25,15 @@ int SEG_SIZE;
 int fd;
 int pid = -1;
 
-
-int sbmem_init (int segsize);
-void linkedlistInit(struct block * target);
-void sbmem_remove();
-int sbmem_open();
-void *sbmem_alloc (int reqsize);
-struct  block* DivideBlock( int realsize);
-int nextPower(int num);
-void sbmem_free (void *ptr);
+ 
 struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2);
-int sbmem_close ();
+struct  block* DivideBlock( int realsize);
+void linkedlistInit(struct block * target);
+int nextPower(int num);
 
 
 
 int sbmem_init (int segsize){
-    
     
     SEG_SIZE = segsize;
     if (shm_unlink( "/sharedMem" ))
@@ -66,9 +59,9 @@ int sbmem_init (int segsize){
     }
     //Initializes the shared memory mapps it to the p_map
     p_map = (struct block *) mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
-    p_map->limit = SEG_SIZE;
-    p_map->address = 0;
-    p_map->no_active_process = 0;
+    p_map -> limit = SEG_SIZE;
+    p_map -> address = 0;
+    p_map -> no_active_process = 0;
 
   //  p_map = p_map->next;
 
@@ -87,7 +80,7 @@ void linkedlistInit(struct block * target){
 
     int i  = 7;
     struct block * new_block;
-    new_block->limit=pow(2,i);
+    new_block->limit= pow(2,i);
     new_block->address = 8;
     target->next = new_block;
     
@@ -101,16 +94,17 @@ void linkedlistInit(struct block * target){
     }    
 }
 
-
+/*
 void sbmem_remove(){
+    
     if(shm_unlink ("/sharedMem")){
         printf("Removed successfully");
     }else{
         printf("Error in remove");
     }
+    
 }
-
-
+*/
 int sbmem_open(){
     fd = shm_open("/sharedMem",O_RDWR , 0666 );   
     page_addr =(struct block *) mmap(0,32768,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0); 
