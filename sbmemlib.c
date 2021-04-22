@@ -26,6 +26,18 @@ int fd;
 int pid = -1;
 
 
+int sbmem_init (int segsize);
+void linkedlistInit(struct block * target);
+void sbmem_remove();
+int sbmem_open();
+void *sbmem_alloc (int reqsize);
+struct  block* DivideBlock( int realsize);
+int nextPower(int num);
+void sbmem_free (void *ptr);
+struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2);
+int sbmem_close ();
+
+
 
 int sbmem_init (int segsize){
     
@@ -90,7 +102,7 @@ void linkedlistInit(struct block * target){
 }
 
 
-void sbmem_remove (){
+void sbmem_remove(){
     if(shm_unlink ("/sharedMem")){
         printf("Removed successfully");
     }else{
@@ -124,7 +136,7 @@ int sbmem_open(){
 }
 
 
- void *sbmem_alloc (int reqsize){
+void *sbmem_alloc (int reqsize){
 
     if(pid == -1){
         printf("U can not alloc before open in shared memory.");

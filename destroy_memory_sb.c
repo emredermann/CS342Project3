@@ -1,6 +1,6 @@
 #include <unistd.h>
 #include <stdlib.h>
-#include "sbmem.h"
+#include "sbmemlib.c"
  
 
 int main()
