@@ -42,10 +42,12 @@ int sbmem_init (int segsize){
     if (shm_unlink( "/sharedMem" ) != -1)
     {
         printf("Shared memory unlinked.");
-        return 0;
+        
     }
+    printf("İlk İf*************************************** \n");
     fd = shm_open("/sharedMem",O_RDWR | O_CREAT, 0666 );
 
+    printf("Shared memory linked. \n");
     if(fd == -1){
       printf("Error Open shared memory open \n");
      
@@ -56,24 +58,32 @@ int sbmem_init (int segsize){
        printf("Error");
        exit(-1);
    }
+   printf("İbefore truncate************************************** \n");
     if( ftruncate( fd,  segsize) == -1 ) {
         printf("ftruncate error \n");
         return -1;
     }
-    sem_wait(&mutex);
+    printf("Aftert truncate************************************** \n");
+    
     //Initializes the shared memory mapps it to the p_map
+    printf("Before mmap*************************************** \n");
     p_map = (struct block *) mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     if(p_map == MAP_FAILED){
         printf( "Mmap failed !!: \n");
         return -1;
-    }
+    } printf("after mmap*************************************** \n");
+
     p_map -> limit = SEG_SIZE;
+    printf("after limit*************************************** \n");
     p_map -> address = 0;
+    printf("after address*************************************** \n");
     p_map -> no_active_process = 0;
+    printf("after activeprocess*************************************** \n");
+  
     
-  //  p_map = p_map->next;
-    printf("before init linkedlilst");
-    linkedlistInit(p_map);
+    printf("before init linkedlist");
+   
+    printf("After init linkedlist before semaphore");
     
     sem_post(&mutex);
     printf("after init linkedlilst");
@@ -85,12 +95,15 @@ int sbmem_init (int segsize){
 void linkedlistInit(struct block * target){
 
     int i  = 7;
+    printf("newblock init linkedlist");
     struct block * new_block;
     new_block->limit= pow(2,i);
     new_block->address = 8;
+     
     target->next = new_block;
     printf("Inside linkedlist INIT");
     while(pow(2,i)< SEG_SIZE){
+        
         struct block * tmp_block;
         tmp_block->limit = pow(2,i);
         tmp_block->address = new_block->address + new_block->limit;
@@ -103,11 +116,13 @@ void linkedlistInit(struct block * target){
  
 void sbmem_remove(){
     sem_wait(&mutex);
+     printf("REMOVE A BAŞLIYORUZ*************************************** \n");
     if(shm_unlink ("/sharedMem")){
         printf("Removed successfully");
     }else{
         printf("Error in remove");
     }
+     printf("REMOVE BİTTİ************************************ \n");
     sem_post(&mutex);
 }
  
@@ -130,6 +145,8 @@ int sbmem_open(){
        printf( "Mmap failed: \n");
        return -1;
     }
+    //**********************
+    linkedlistInit(page_addr);
     sem_post(&mutex);
 
     pid = getpid();
