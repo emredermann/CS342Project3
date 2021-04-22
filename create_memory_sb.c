@@ -11,5 +11,6 @@ int main(int argc, char *argv[])
         segment_size = atoi(argv[1]);  
     }
     sbmem_init(segment_size);
+     
     return 0;
 }
