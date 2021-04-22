@@ -1,11 +1,14 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include "sbmem.h"
+
 #define ASIZE 256
 
 int main()
 {
     int i, ret;
+ 
+    
     char *p;
     ret = sbmem_open();
     

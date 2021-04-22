@@ -24,7 +24,7 @@ int virtualAddress;
 int SEG_SIZE;
 int fd;
 int pid = -1;
-
+sem_t mutex;
  
 struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2);
 struct  block* DivideBlock( int realsize);
@@ -34,9 +34,12 @@ int nextPower(int num);
 
 
 int sbmem_init (int segsize){
+
+    sem_init(&mutex,1,0);
     
+    printf("***********************************************");
     SEG_SIZE = segsize;
-    if (shm_unlink( "/sharedMem" ))
+    if (shm_unlink( "/sharedMem" ) != -1)
     {
         printf("Shared memory unlinked.");
         return 0;
@@ -57,20 +60,23 @@ int sbmem_init (int segsize){
         printf("ftruncate error \n");
         return -1;
     }
+    sem_wait(&mutex);
     //Initializes the shared memory mapps it to the p_map
     p_map = (struct block *) mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    if(p_map == MAP_FAILED){
+        printf( "Mmap failed !!: \n");
+        return -1;
+    }
     p_map -> limit = SEG_SIZE;
     p_map -> address = 0;
     p_map -> no_active_process = 0;
-
+    
   //  p_map = p_map->next;
 
     linkedlistInit(p_map);
     
-    if(p_map == MAP_FAILED){
-        printf( "Mmap failed: \n");
-        return -1;
-    }
+    sem_post(&mutex);
+
     return 0;
     
 }
@@ -83,7 +89,7 @@ void linkedlistInit(struct block * target){
     new_block->limit= pow(2,i);
     new_block->address = 8;
     target->next = new_block;
-    
+    printf("Inside linkedlist INIT");
     while(pow(2,i)< SEG_SIZE){
         struct block * tmp_block;
         tmp_block->limit = pow(2,i);
@@ -96,16 +102,17 @@ void linkedlistInit(struct block * target){
 
  
 void sbmem_remove(){
-    
+    sem_wait(&mutex);
     if(shm_unlink ("/sharedMem")){
         printf("Removed successfully");
     }else{
         printf("Error in remove");
     }
-    
+    sem_post(&mutex);
 }
  
 int sbmem_open(){
+    sem_wait(&mutex);
     fd = shm_open("/sharedMem",O_RDWR , 0666 );   
     page_addr =(struct block *) mmap(0,32768,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0); 
     if(page_addr == MAP_FAILED){
@@ -123,6 +130,8 @@ int sbmem_open(){
        printf( "Mmap failed: \n");
        return -1;
     }
+    sem_post(&mutex);
+
     pid = getpid();
     page_addr->no_active_process++;
     printf("Opened library for allocation \npid :%s ",getpid());
@@ -131,14 +140,16 @@ int sbmem_open(){
 
 
 void *sbmem_alloc (int reqsize){
-
+sem_wait(&mutex);
     if(pid == -1){
         printf("U can not alloc before open in shared memory.");
+        sem_post(&mutex);
         return NULL;
     }   
     int realsize = nextPower(12 + reqsize);
 
     if(realsize > 4096 ||realsize < 128 ){
+        sem_post(&mutex);
         return NULL;
     }
     struct  block * tmp = page_addr;
@@ -153,6 +164,7 @@ void *sbmem_alloc (int reqsize){
     }
     
     if (tmp == NULL && tmp_size == false){
+        sem_post(&mutex);
         printf("No free space.");
         return NULL;
     }else if (tmp == NULL && tmp_size == true)
@@ -166,10 +178,12 @@ void *sbmem_alloc (int reqsize){
         deleted_target = tmp->next;
         tmp->next = deleted_target->next;
         deleted_target->next = NULL;
+        sem_post(&mutex);
         return deleted_target;
  }
 
 struct  block* DivideBlock( int realsize){
+    sem_wait(&mutex);
         struct  block * cur = page_addr;
         while (cur->next->limit <= realsize){cur = cur->next;}
         
@@ -190,7 +204,7 @@ struct  block* DivideBlock( int realsize){
         cur->next = new_block_1;
         new_block_1->next = new_block_2;
         new_block_2->next = tmp_next;
-        delete(tmp_delete);
+   sem_post(&mutex);
         return new_block_1;
     
 }
@@ -208,55 +222,53 @@ int nextPower(int num){
 }
 
 
-
-
-
 void sbmem_free (void *ptr){
-
-struct  block * deleted_target = (struct block *) ptr;
- if(pid == -1){
-        printf("U can not alloc before open in shared memory.");
-        return NULL;
-    }   
-    
-    struct  block * tmp = page_addr;
-    while(tmp != NULL && tmp->next <= deleted_target->limit){tmp = tmp->next;} 
+    sem_wait(&mutex);
+    struct  block * deleted_target = (struct block *) ptr;
+    if(pid == -1){
+            printf("U can not alloc before open in shared memory.");
+            return NULL;
+        }   
         
-    deleted_target->next = tmp->next;
-    tmp->next = deleted_target;
-    struct block * block_to_be_combined = deleted_target;
+        struct  block * tmp = page_addr;
+        while(tmp != NULL && tmp->next <= deleted_target->limit){tmp = tmp->next;} 
+            
+        deleted_target->next = tmp->next;
+        tmp->next = deleted_target;
+        struct block * block_to_be_combined = deleted_target;
 
 
 // Infinite loop bak!!
-    while(block_to_be_combined->limit == block_to_be_combined->next->limit)
-    {
-        block_to_be_combined = combineBlocks(block_to_be_combined,block_to_be_combined->next);
-    }
-    
+        while(block_to_be_combined->limit == block_to_be_combined->next->limit)
+        {
+            block_to_be_combined = combineBlocks(block_to_be_combined,block_to_be_combined->next);
+        }
+    sem_post(&mutex);
 }
 struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2){
-   
+    sem_wait(&mutex);
     struct block * combined_block;
     combined_block->address = ptr_1->address;
     combined_block->limit = ptr_1->limit * 2;
     combined_block->next = ptr_2->next;
-    delete(ptr_1); delete(ptr_2);
+ 
     ptr_1 = NULL;ptr_2 = NULL;
+    sem_post(&mutex);
     return combined_block;
 
-    
-        
 }
 
 
 
-
-
 int sbmem_close (){
+    sem_wait(&mutex);
     page_addr->no_active_process--;
     int t = munmap(page_addr, SEG_SIZE);
     printf("To use the library again first call sbmem_open()");
-    if(shm_unlink("/sharedMem"))
+    if(shm_unlink("/sharedMem")){
+        sem_post(&mutex);
         return 1;
+        }
+    sem_post(&mutex);
     return 0;
 }
