@@ -249,6 +249,7 @@ struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2){
 int sbmem_close (){
     page_addr->no_active_process--;
     int t = munmap(page_addr, SEG_SIZE);
+    printf("To use the library again first call sbmem_open()");
     if(shm_unlink("/sharedMem"))
         return 1;
     return 0;
