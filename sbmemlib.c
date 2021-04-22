@@ -10,6 +10,13 @@
 #include <semaphore.h>
 #include <sys/mman.h>
 
+/* COmmands
+gcc -o create sbmemlib.c create_memory_sb.c  -lm -lrt -lpthread
+gcc -o destroy sbmemlib.c destroy_memory_sb.c  -lm -lrt -lpthread
+
+*/
+
+
 
 struct block{
     int address;
