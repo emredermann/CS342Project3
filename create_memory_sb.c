@@ -2,10 +2,15 @@
 #include <stdlib.h>
 #include "sbmemlib.c"
  
-#define SEGMENT_SIZE 256
 
-int main()
+int main(int argc, char *argv[])
 {
-    sbmem_init(SEGMENT_SIZE);
+    int segment_size;
+    char * input;
+    if (argc > 1) {
+        segment_size = atoi(argv[1]);  
+    }
+    sbmem_init(segment_size);
+    sbmem_open();
     return 0;
 }

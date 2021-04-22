@@ -11,283 +11,55 @@
 #include <sys/mman.h>
 
 
-// Defined the length randomly
-#define len 256
-#define SEGMENT_SIZE 512
-
-//https://www.geeksforgeeks.org/buddy-memory-allocation-program-set-1-allocation/
-//https://www.tutorialspoint.com/inter_process_communication/inter_process_communication_shared_memory.htm
-
-// Important One
-//https://stackoverflow.com/questions/29238015/creating-shared-memory-segments
-
-//mmap implementation
-//https://yandex.com/turbo/devsday.ru/s/blog/details/21607
-
-//About mmap and shm_open for sharing memory between processes
-//https://stackoverflow.com/questions/4991533/sharing-memory-between-processes-through-the-use-of-mmap
-//https://stackoverflow.com/questions/15029053/share-process-memory-with-mmap
-
-// Shared memory object
-// The attributes or the structure must be checked. 
-typedef struct {
-    pid_t pid;
-    // Current location of the block 
-    int baseAddress;
-    // Limit of the block
+struct block{
+    int address;
     int limit;
+    int no_active_process;
     struct block * next;
-    struct block * rear;
-    struct block * head;
-}block;
+};
 
-
-block * head;
-block * current_pointer;
-block * p_map;
-int current_counter;
-int fd;
-int pid;
-int counter;
-int space_allocated = 0;
-int free_space;
-bool activeProcess;
+struct block * page_addr;
+struct block * p_map;
 int virtualAddress;
-sem_t mutex;
+int SEG_SIZE;
+int fd;
+int pid = -1;
 
 
 
-/*
-Creates the 2 dimesional linkedlists one dimension.
-*/
-void linkedlistInit(block* target){
-    //i =  means 512 memory size
+int sbmem_init (int segsize){
     
-    target->rear = NULL;
-    target->limit = 2;
     
-    //tmpNode->baseAddress =
-    head = target;
-
-    for (int i = 2; i < 10; i++)
-    {
-        block * newNode;
-        newNode->limit = pow(2,i);
-        newNode->next = NULL;
-        newNode->rear = target;
-        newNode->head = NULL;
-        target->next = newNode;
-        target = target->next;
-    }
-    
-    printf("Doubly linkedlist created succesfully");
-    
-}
-
-
-/*
-returns the pointer of the target memory space segment.
-Example:
-If the target seg size is 30 it returns the head of the 32.
-*/
-block* freeHeadPointerLocator(int segSize){
-     block *tmp = head;
-     while(tmp != NULL){
-         if(tmp->limit = nextPower(segSize)){
-             return tmp;
-         } 
-         tmp = tmp->next;
-     }
-     return NULL;
-}
-
-
-block * freeNodeAllocator(block * head,int segSize){
-    block * tmp = head;
-    if(tmp != NULL){
-        //deallocate the tmp and return the deallocated tmp as a free space must be used.
-        return tmp;
-    }
-    //Means there is no free space
-    return NULL;
-}
-
-
-/*
-    Creates a new space according to the bigger egment size linkedlist situation.
-
-void createNewFreeSpace(block * headOfTheNextNode){
-    
-    block * tmp = head;
-    while(tmp->next != headOfTheNextNode)
-        tmp = tmp->next;
-
-    //Deallocate - delete one node from headOfTheNextNode and create 2 node to the tmp.
-        block * current =tmp->next->head;
-        while (current->next != NULL ){
-              current = current->next; 
-        }
-        if(current == tmp->next->head){
-            // Means empty linkedlist
-        }else{
-            // Deletes one (where current node pointer is) node from the original linkedlist.
-            current = current->rear;
-            tmp = current->next;
-            current->next = NULL;
-            delete(tmp); 
-        }
-       
-    // Newly created nodes for the one lower segment.
-    block * newNode,* secondNewNode;
-    
-    newNode->limit = tmp->limit;
-    newNode->rear = tmp->head;
-    tmp->head->next = newNode;
-    
-    secondNewNode->limit = tmp->limit;
-    secondNewNode->next = NULL;
-    secondNewNode->rear = newNode;
-    newNode->next = secondNewNode;
-}
-*/
-
-/*
-    Creates a new space according to the bigger segment size linkedlist situation.
-*/
-void createNewFreeSpace(block * headOfTheNextNode){
-
-	block * tmp = head;
-	while(tmp->next != headOfTheNextNode) {
-		tmp = tmp->next;
-	}
-
-	//Deallocate - delete one node from tmp->head and create 2 nodes at tmp->next.
-	block * current = tmp->head;
-
-	// Deletes one (where current node pointer is) node from the original linkedlist.
-    block * r = current;
-    r = r->next;
-    r->rear = NULL;
-	tmp->head = current->next;
-	current->next = NULL;
-	delete(current); 
-	current = NULL;
-
-	tmp = tmp->next;
-
-	// Newly created nodes for the next segment.
-	block * newNode,* secondNewNode;
-
-	newNode->limit = tmp->limit;
-	newNode->rear = NULL;
-	newNode->pid = getpid();
-	newNode->baseAddress = newNode;
-	tmp->head = newNode;
-
-	secondNewNode->limit = tmp->limit;
-	secondNewNode->pid = getpid();
-	secondNewNode->baseAddress = secondNewNode;
-	secondNewNode->next = NULL;
-	secondNewNode->rear = newNode;
-	newNode->next = secondNewNode;
-}
-
-
-/*
-	Deallocates buddy node from free space list and allocated to shared memory
-*/
-block *allocateBuddyNodeToSharedMem(block * ptr){
-	block * tmp = ptr->head;
-
-	if(tmp == NULL){
-		//no free space
-		return NULL;
-	}
-    block * t;
-    t = ptr->head;
-	t = t->next;
-	t->rear = NULL;
-
-	space_allocated += tmp->limit;
-	free_space -= tmp->limit;
-
-	//Add node to p_map linked list
-	if (p_map == NULL){ //if empty list add directly to head
-		p_map = tmp;
-		tmp->next = NULL;
-		tmp->rear = NULL;
-	}
-	else {
-		tmp->next = p_map->next;
-		tmp->rear = NULL;
-		p_map = tmp;
-	}
-
-	return tmp; //Burada p_map returnlemek daha mantıklı olabilir
-
-} 
-
-
-
-void *sbmem_alloc (int reqsize){
-	
-	int realsize = 8 + reqsize;
-
-	block *ptr = freeHeadPointerLocator(realsize);
-	block *tmp = head;
-	int required_size = nextPower(realsize);
-
-	if (ptr->head == NULL && free_space == 0) {
-		printf("Memory could not be allocated");
-		return NULL;
-	}
-	else if (ptr->head == NULL && free_space > realsize) {
-
-		while (tmp != ptr) {
-			if (free_space >= tmp->limit && tmp->head != NULL){
-				createNewFreeSpace(tmp);
-			}
-			tmp = tmp->next;
-		}
-	}
-	tmp = allocateBuddyNodeToSharedMem(ptr);
-	return tmp;
-    
-}
-
-
-
-int sbmem_init(int segsize){
-    pid = 0;
-    activeProcess = false;
-    virtualAddress = 0;
-    space_allocated = 512;
-    sem_init(&mutex, 1, 0);
-    // Removes the previous (if exist) shared memory.
+    SEG_SIZE = segsize;
     if (shm_unlink( "/sharedMem" ))
     {
         printf("Shared memory unlinked.");
         return 0;
     }
+    fd = shm_open("/sharedMem",O_RDWR | O_CREAT, 0666 );
 
-    // Creates shared memory
-    fd = shm_open("/sharedMem",O_RDWR | O_CREAT, 0777 );
-    
     if(fd == -1){
       printf("Error Open shared memory open \n");
      
       return -1;
    }  
-    /* Set the memory object's size  */
-    //Max size
-    if( ftruncate( fd, sizeof( nextPower(segsize) * 9) ) == -1 ) {
+
+   if(segsize > 262144 || segsize < 32768){
+       printf("Error");
+       exit(-1);
+   }
+    if( ftruncate( fd,  segsize) == -1 ) {
         printf("ftruncate error \n");
         return -1;
     }
     //Initializes the shared memory mapps it to the p_map
-    // Size of the mapped segment.
-    p_map = (block *) mmap( virtualAddress, sizeof(block) * 9, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
-    virtualAddress += sizeof(block) * 9;
+    p_map = (struct block *) mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    p_map->limit = SEG_SIZE;
+    p_map->address = 0;
+    p_map->no_active_process = 0;
+
+  //  p_map = p_map->next;
+
     linkedlistInit(p_map);
     
     if(p_map == MAP_FAILED){
@@ -295,44 +67,127 @@ int sbmem_init(int segsize){
         return -1;
     }
     return 0;
+    
 }
 
 
-// Have doubts about 
-// The created semaphore(s) will be removed as well. 
-bool sbmem_remove (){
-   sem_wait(&mutex);
-   sem_post(&mutex);
+void linkedlistInit(struct block * target){
+
+    int i  = 7;
+    struct block * new_block;
+    new_block->limit=pow(2,i);
+    new_block->address = 8;
+    target->next = new_block;
+    
+    while(pow(2,i)< SEG_SIZE){
+        struct block * tmp_block;
+        tmp_block->limit = pow(2,i);
+        tmp_block->address = new_block->address + new_block->limit;
+        i++;
+        new_block->next = tmp_block;
+        new_block = tmp_block;
+    }    
+}
+
+
+void sbmem_remove (){
+    if(shm_unlink ("/sharedMem")){
+        printf("Removed successfully");
+    }else{
+        printf("Error in remove");
+    }
 }
 
 
 int sbmem_open(){
-    if(activeProcess){
-        return -1;
+    fd = shm_open("/sharedMem",O_RDWR , 0666 );   
+    page_addr =(struct block *) mmap(0,32768,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0); 
+    if(page_addr == MAP_FAILED){
+       printf( "Mmap failed: \n");
+       return -1;
     }
-    sem_wait(&mutex);
-    //What is was the reason of the virtual address.
-    //What was the aim?
-    
-    current_pointer = (block *) mmap( virtualAddress, sizeof(block), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
-    current_pointer->baseAddress = virtualAddress;
-    current_pointer->pid = pid;
-    activeProcess = true;
-    pid ++;
-    sem_post(&mutex);
+    SEG_SIZE = page_addr->limit;
+    if(page_addr->no_active_process > 10){
+        printf("Processes exceeded the limit");
+        return -1;
+        
+    }
+    page_addr = (struct block *) mmap(0,SEG_SIZE,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
+    if(page_addr == MAP_FAILED){
+       printf( "Mmap failed: \n");
+       return -1;
+    }
+    pid = getpid();
+    page_addr->no_active_process++;
+    printf("Opened library for allocation \npid :%s ",getpid());
     return 0;
 }
 
-/*
-void *sbmem_alloc (int reqsize){
- 
-    if (p_map != NULL){
-         return p_map;
+
+ void *sbmem_alloc (int reqsize){
+
+    if(pid == -1){
+        printf("U can not alloc before open in shared memory.");
+        return NULL;
+    }   
+    int realsize = nextPower(12 + reqsize);
+
+    if(realsize > 4096 ||realsize < 128 ){
+        return NULL;
+    }
+    struct  block * tmp = page_addr;
+    bool tmp_size = false;
+    struct  block * deleted_target;
+    
+    while((tmp != NULL) && (tmp->next->limit != realsize )){
+        if(tmp->next->limit  > realsize){
+            tmp_size = true;
         }
-    printf("Memory could not allocated");
-    return NULL;
+        tmp = tmp->next;
+    }
+    
+    if (tmp == NULL && tmp_size == false){
+        printf("No free space.");
+        return NULL;
+    }else if (tmp == NULL && tmp_size == true)
+     {
+        struct block * ptr;
+        do{
+            ptr = DivideBlock(realsize);        
+        }while(ptr->limit > nextPower(realsize));
+
+    }
+        deleted_target = tmp->next;
+        tmp->next = deleted_target->next;
+        deleted_target->next = NULL;
+        return deleted_target;
+ }
+
+struct  block* DivideBlock( int realsize){
+        struct  block * cur = page_addr;
+        while (cur->next->limit <= realsize){cur = cur->next;}
+        
+        int tmp_address = cur->next->address;
+        int tmp_limit = cur->next->limit;
+        struct block * tmp_next = cur->next->next;
+        
+        struct block * tmp_delete = cur->next;
+
+        struct  block * new_block_1;
+        struct  block * new_block_2;
+        
+        new_block_1->limit = tmp_limit / 2;
+        new_block_2->limit = tmp_limit / 2;
+        new_block_1->address = tmp_address;
+        new_block_2->address = tmp_address + (tmp_limit / 2);
+
+        cur->next = new_block_1;
+        new_block_1->next = new_block_2;
+        new_block_2->next = tmp_next;
+        delete(tmp_delete);
+        return new_block_1;
+    
 }
-*/
 
 //To find the necessary size of the allocation.
 int nextPower(int num){
@@ -347,25 +202,55 @@ int nextPower(int num){
 }
 
 
-/*
-This function will deallocate the memory space
-allocated earlier and pointed by the pointer ptr. The deallocated memory space
-will be part of the free memory in the segment.
-*/
+
+
+
 void sbmem_free (void *ptr){
-    sem_wait(&mutex);
-    pid--;
+
+struct  block * deleted_target = (struct block *) ptr;
+ if(pid == -1){
+        printf("U can not alloc before open in shared memory.");
+        return NULL;
+    }   
+    
+    struct  block * tmp = page_addr;
+    while(tmp != NULL && tmp->next <= deleted_target->limit){tmp = tmp->next;} 
+        
+    deleted_target->next = tmp->next;
+    tmp->next = deleted_target;
+    struct block * block_to_be_combined = deleted_target;
 
 
-    activeProcess = false;
-    sem_post(&mutex);
+// Infinite loop bak!!
+    while(block_to_be_combined->limit == block_to_be_combined->next->limit)
+    {
+        block_to_be_combined = combineBlocks(block_to_be_combined,block_to_be_combined->next);
+    }
+    
 }
- 
- int sbmem_close(){
-    sem_wait(&mutex);
-    activeProcess = false;
-    sem_post(&mutex);
+struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2){
+   
+    struct block * combined_block;
+    combined_block->address = ptr_1->address;
+    combined_block->limit = ptr_1->limit * 2;
+    combined_block->next = ptr_2->next;
+    delete(ptr_1); delete(ptr_2);
+    ptr_1 = NULL;ptr_2 = NULL;
+    return combined_block;
+
+    
+        
+}
+
+
+
+
+
+int sbmem_close (){
+    page_addr->no_active_process--;
+    int t = munmap(page_addr, SEG_SIZE);
+    printf("To use the library again first call sbmem_open()");
     if(shm_unlink("/sharedMem"))
         return 1;
     return 0;
- }
+}
