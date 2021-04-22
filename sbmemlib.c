@@ -37,7 +37,7 @@ int sbmem_init (int segsize){
 
     sem_init(&mutex,1,0);
     
-    printf("***********************************************");
+    printf("*********************************************** \n");
     SEG_SIZE = segsize;
     if (shm_unlink( "/sharedMem" ) != -1)
     {
@@ -72,11 +72,11 @@ int sbmem_init (int segsize){
     p_map -> no_active_process = 0;
     
   //  p_map = p_map->next;
-
+    printf("before init linkedlilst");
     linkedlistInit(p_map);
     
     sem_post(&mutex);
-
+    printf("after init linkedlilst");
     return 0;
     
 }
