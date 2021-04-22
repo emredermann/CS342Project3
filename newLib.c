@@ -23,6 +23,7 @@ struct block * p_map;
 int virtualAddress;
 int SEG_SIZE;
 int fd;
+int pid = -1;
 
 
 
@@ -99,7 +100,6 @@ void sbmem_remove (){
 
 
 int sbmem_open(){
-
     fd = shm_open("/sharedMem",O_RDWR , 0666 );   
     page_addr =(struct block *) mmap(0,32768,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0); 
     if(page_addr == MAP_FAILED){
@@ -117,45 +117,82 @@ int sbmem_open(){
        printf( "Mmap failed: \n");
        return -1;
     }
- 
+    pid = getpid();
     page_addr->no_active_process++;
     printf("Opened library for allocation \npid :%s ",getpid());
     return 0;
-
 }
 
 
-
-
-
  void *sbmem_alloc (int reqsize){
-    int realsize = 8 + reqsize;
+
+    if(pid == -1){
+        printf("U can not alloc before open in shared memory.");
+        return NULL;
+    }   
+    int realsize = nextPower(12 + reqsize);
+
     if(realsize > 4096 ||realsize < 128 ){
         return NULL;
     }
-    struct  block * tmp = p_map;
+    struct  block * tmp = page_addr;
 
     struct  block * deleted_target;
     
     while(tmp != NULL && tmp->next->limit != reqsize){tmp = tmp->next;}
     
     if (tmp == NULL){
+        printf("No free space.");
         return NULL;
     }
-
     deleted_target = tmp->next;
     tmp->next = deleted_target->next;
     deleted_target->next = NULL;
     return deleted_target;
-
-
-
  }
+
+//To find the necessary size of the allocation.
+int nextPower(int num){
+    int i = 1;
+    while(1)
+    {
+        if( (int) pow(2,i) > num){
+            return (int) pow(2,i);
+        }
+        i++;
+    }
+}
+
+
+
+
+
+
+
 
 
 
 void sbmem_free (void *ptr){
 
+ if(pid == -1){
+        printf("U can not alloc before open in shared memory.");
+        return NULL;
+    }   
+    }
+    struct  block * tmp = page_addr;
+
+    struct  block * deleted_target;
+    
+    while(tmp != NULL && tmp->next->limit != reqsize){tmp = tmp->next;}
+    
+    if (tmp == NULL){
+        printf("No free space.");
+        return NULL;
+    }
+    deleted_target = tmp->next;
+    tmp->next = deleted_target->next;
+    deleted_target->next = NULL;
+    return deleted_target;
 }
 
 
