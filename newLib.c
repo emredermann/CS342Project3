@@ -246,10 +246,9 @@ struct block*  combineBlocks(struct  block * ptr_1,struct  block * ptr_2){
 
 
 
-
-
 int sbmem_close (){
-    //munmap();
+    page_addr->no_active_process--;
+    int t = munmap(page_addr, SEG_SIZE);
     if(shm_unlink("/sharedMem"))
         return 1;
     return 0;
