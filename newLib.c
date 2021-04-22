@@ -136,20 +136,58 @@ int sbmem_open(){
         return NULL;
     }
     struct  block * tmp = page_addr;
-
+    bool tmp_size = false;
     struct  block * deleted_target;
     
-    while(tmp != NULL && tmp->next->limit != reqsize){tmp = tmp->next;}
+    while((tmp != NULL) && (tmp->next->limit != realsize )){
+        if(tmp->next->limit  > realsize){
+            tmp_size = true;
+        }
+        tmp = tmp->next;
+    }
     
-    if (tmp == NULL){
+    if (tmp == NULL && tmp_size == false){
         printf("No free space.");
         return NULL;
+    }else if (tmp == NULL && tmp_size == true)
+     {
+        struct block * ptr;
+        do{
+            ptr = DivideBlock(realsize);        
+        }while(ptr->limit > nextPower(realsize));
+
     }
-    deleted_target = tmp->next;
-    tmp->next = deleted_target->next;
-    deleted_target->next = NULL;
-    return deleted_target;
+        deleted_target = tmp->next;
+        tmp->next = deleted_target->next;
+        deleted_target->next = NULL;
+        return deleted_target;
  }
+
+struct  block* DivideBlock( int realsize){
+        struct  block * cur = page_addr;
+        while (cur->next->limit <= realsize){cur = cur->next;}
+        
+        int tmp_address = cur->next->address;
+        int tmp_limit = cur->next->limit;
+        struct block * tmp_next = cur->next->next;
+        
+        struct block * tmp_delete = cur->next;
+
+        struct  block * new_block_1;
+        struct  block * new_block_2;
+        
+        new_block_1->limit = tmp_limit / 2;
+        new_block_2->limit = tmp_limit / 2;
+        new_block_1->address = tmp_address;
+        new_block_2->address = tmp_address + (tmp_limit / 2);
+
+        cur->next = new_block_1;
+        new_block_1->next = new_block_2;
+        new_block_2->next = tmp_next;
+        delete(tmp_delete);
+        return new_block_1;
+    
+}
 
 //To find the necessary size of the allocation.
 int nextPower(int num){
