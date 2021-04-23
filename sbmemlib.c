@@ -408,7 +408,7 @@ void sbmem_free(void *ptr)
                        mode = 1;
 
                        // 2 * sizeof(struct block) ne demek??
-                       cur = tmp +2*sizeof(struct block);
+                       cur = tmp + 2 * sizeof(struct block);
                    }
                }
                else{
@@ -439,17 +439,19 @@ void sbmem_free(void *ptr)
             printf("U can not alloc before open in shared memory.");
             return;
         }   
+
+        
 //        while(current_ptr->limit < (((struct block *) ptr)->limit)){
 //            current_ptr = current_ptr + sizeof(struct block);
 //       }
-        
+        /*
         location_next_ptr =  ((struct  block *) current_ptr);
         current_ptr = current_ptr - sizeof(struct block);    
-       /*
+     
         current_ptr->next = ((struct block *) ptr)->location;
         ((struct block *) ptr)->location = current_ptr + ()
         ((struct block *) ptr)-> next = location_next_ptr->location;
-        */
+       
        
        struct block * end_node = current_ptr;
        while (end_node->next != -1)
@@ -473,7 +475,7 @@ void sbmem_free(void *ptr)
         
         end_node =  end_node + (2 * sizeof(block));        
         current_ptr->next = ((struct  block *)end_node)->location;
-
+*/
        /*      
         deleted_target->next = tmp->next;
         tmp->next = deleted_target;
