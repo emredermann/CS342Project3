@@ -394,7 +394,45 @@ void sbmem_free(void *ptr)
             Search part
         */
 
-        /*
+       int mode = 1;
+       if(cur->location == val){
+           mode = 0;
+           while(cur != ptr){
+               if( mode == 0){
+                   if((cur->location + cur->limit) == cur->next) {
+                       val = val + cur->limit;
+                       cur = cur + sizeof(struct block);
+                   }else{
+                       val = val + cur->limit;
+                       tmp = (struct block)(page_addr + val);
+                       mode = 1;
+
+                       // 2 * sizeof(struct block) ne demek??
+                       cur = tmp +2*sizeof(struct block);
+                   }
+               }
+               else{
+                   if((val + (tmp->limit)) == cur->next || (val+(tmp->limit)) == cur->location){
+                       val = val + tmp->limit;
+                       mode = 0;
+                       cur = cur + sizeof(struct block);
+                   }else {
+                       val = val + tmp->limit;
+                       tmp = (struct * block) page_addr + val;
+                       // 2* sizeofssadsad
+                       cur = tmp+2*sizeof(struct block);
+                   }
+               }
+               //unable to find
+               if(cur->next == -1){
+                   printf("Could not founded");
+     //              sem_post(&mutex);
+                   return
+               }
+           }
+       }
+///**********************************************************
+
         struct  block * location_next_ptr;
         void * memory_ptr = ;
         int value = 1024;
@@ -403,10 +441,9 @@ void sbmem_free(void *ptr)
             printf("U can not alloc before open in shared memory.");
             return;
         }   
-        */
-        while(current_ptr->limit < (((struct block *) ptr)->limit)){
-            current_ptr = current_ptr + sizeof(struct block);
-        }
+//        while(current_ptr->limit < (((struct block *) ptr)->limit)){
+//            current_ptr = current_ptr + sizeof(struct block);
+//       }
         
         location_next_ptr =  ((struct  block *) current_ptr);
         current_ptr = current_ptr - sizeof(struct block);    
@@ -479,13 +516,8 @@ struct block * combineBlocks(struct block * lower_location,struct block * higher
 
 
 int sbmem_close (){
-    //sem_wait(&mutex);
-     int t = munmap(page_addr, SEG_SIZE);
+    //No of process düşür
+    int t = munmap(page_addr, SEG_SIZE);
     printf("To use the library again first call sbmem_open()");
-    if(shm_unlink("/sharedMem")){
-        //sem_post(&mutex);
-        return 1;
-        }
-    //sem_post(&mutex);
-    return 0;
+   
 }
