@@ -242,7 +242,6 @@ void *sbmem_alloc (int reqsize){
         struct block * result = tmp; 
         tmp_next = page_addr + tmp->location;
       
-
       // Left shift operation
         while(tmp_next->location != -1){
             tmp->limit = tmp_next->limit;
@@ -260,15 +259,6 @@ void *sbmem_alloc (int reqsize){
 
     // Tam fit yok ama gireceği alan var; gireceği alanın pointerını ver.
     return DivideBlock (realsize,max);
-
-
-
-
-
-
-
-
-
 
 
 
