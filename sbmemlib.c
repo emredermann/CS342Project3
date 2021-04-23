@@ -30,6 +30,7 @@ const int minimum_segsize = 32768;
 int virtualAddress;
 int SEG_SIZE;
 int fd;
+int management_size;
 int pid = -1;
 sem_t mutex;
  
@@ -65,8 +66,8 @@ int sbmem_init (int segsize){
         return -1;
     }
     
-    int management_size = (int) (((segsize / 256)/2)+3) * sizeof(struct block);
-    //Initializes the shared memory mapps it to the p_map
+     management_size = (int) (((segsize / 256) / 2) + 3) * sizeof(struct block);
+    //Initializes the shared memory maps it to the p_map
     printf("Before mmap*************************************** \n");
     page_addr =  mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     
@@ -83,7 +84,7 @@ int sbmem_init (int segsize){
     p_map->next = -1;
    
     linkedlistInit();
-
+    printList();
     return 0;
     
 }
@@ -93,26 +94,28 @@ void linkedlistInit(){
 
     int i  = 7;
     void * ptr = page_addr;
-    struct block * new_block ;
-    
-    new_block->location = (void * ptr) ptr;
-    new_block->next = ptr + sizeof(struct block);
-    ptr = ptr + sizeof(struct block);
+    struct block * head = page_addr + sizeof(struct block);
 
-    int limit = pow(2,i);
-    new_block->limit = limit;    
-    
-     
-    while(pow(2,i)< SEG_SIZE){
-        
-        struct block * tmp_block;
-        tmp_block->limit = pow(2,i);
-        tmp_block->location = ptr;
-        i++;
-        tmp_block->next = ptr + sizeof(struct block);
-        ptr = ptr  + tmp_block->limit;
-    }    
-    printList();
+    int init_segsize = management_size;
+   while(init_segsize > management_size){
+       init_segsize = init_segsize /2;
+       count ++;
+   }
+   int tmpa = management_size;
+   int tmpb = management_size * 2;
+   for (int i = 0; i < count -1; i++){
+       head->location = tmpa;
+       head->limit = tmpa;
+       head->next = tmpb;
+   
+    tmpa = tmpb;
+    tmpb = tmpb *2;
+    head = head + sizeof(struct block);
+   }
+    head->limit = tmpa;
+    head->location = tmpa;
+    head->next = -1;
+   
 }
 
  
@@ -378,7 +381,20 @@ int nextPower(int num){
 void sbmem_free(void *ptr)
 {
     	sem_wait(&mutex);
+        //Linkedlist pointer
     	struct  block * current_ptr = page_addr + sizeof(struct block);
+        //Pointer location
+        int val = (int) (((segsize / 256) / 2) + 3) * sizeof(struct block);
+        //Ptr
+        struct  block * tmp = page_addr + val;
+        //freelenmesi gereken mem location
+        struct block * cur = tmp + sizeof(block);
+        
+        /*
+            Search part
+        */
+
+        /*
         struct  block * location_next_ptr;
         void * memory_ptr = ;
         int value = 1024;
@@ -387,10 +403,11 @@ void sbmem_free(void *ptr)
             printf("U can not alloc before open in shared memory.");
             return;
         }   
+        */
         while(current_ptr->limit < (((struct block *) ptr)->limit)){
             current_ptr = current_ptr + sizeof(struct block);
         }
-
+        
         location_next_ptr =  ((struct  block *) current_ptr);
         current_ptr = current_ptr - sizeof(struct block);    
        /*
