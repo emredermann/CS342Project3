@@ -75,12 +75,16 @@ int sbmem_init (int segsize){
         return -1;
     } printf("after mmap*************************************** \n");
 
+   
+
     p_map = (struct block *) ptr;
     p_map->limit = SEG_SIZE;
     p_map->location = 0;
     p_map->next = -1;
    
-    
+     linkedlistInit();
+
+
     return 0;
     
 }
@@ -110,6 +114,7 @@ void linkedlistInit(){
         tmp_block->next = ptr + sizeof(struct block);
         ptr = ptr  + tmp_block->limit;
     }    
+    printList();
 }
 
  
@@ -165,7 +170,7 @@ int sbmem_open(){
     
     //**********************
     
-    linkedlistInit();
+    
 
     printf("Linked list called safely. \n");
 
@@ -224,17 +229,35 @@ void *sbmem_alloc (int reqsize){
     // Tam fit varsa gireceği alan pointer
     if(tmp->limit == realsize){    
         //tmp = tmp + sizeof(struct block);
-        struct block * ptr = page_addr + tmp->location;
-        ptr->limit = realsize;
-        ptr = ptr + sizeof(struct block);
-        return (void *) ptr;
+        struct block * tmp_next;
+
+        // Takes the result pointer 
+        struct block * result = tmp; 
+        tmp_next = page_addr + tmp->location;
+      
+
+      // Left shift operation
+        while(tmp_next->location != -1){
+            tmp->limit = tmp_next->limit;
+            tmp->location = tmp_next->location;
+            tmp->next = tmp_next->next;
+            tmp = page_addr + sizeof(struct block);
+            tmp_next = tmp_next + sizeof(struct block);
+            }     
+    
+        tmp_next = tmp_next + sizeof(struct block);
+        return (void *) result;
     }
     
 
+    // Tam fit yok ama gireceği alan var; gireceği alanın pointerını ver.
+    return DivideBlock (realsize,max);
 
 
-    // Tam fit yok alan var gireceği alanın pointer
-    
+
+
+
+
 
 
 
@@ -259,25 +282,69 @@ void *sbmem_alloc (int reqsize){
         return deleted_target;
  */
  
+// To chehk the list
+ printList();
  }
 
 
+void printList(){
+     struct  block * tmp = (struct  block *)page_addr;
+     tmp = tmp + sizeof(struct  block);
+     while(tmp->next != -1){
+         printf("%d,%d,%d \n",tmp->location,tmp->limit,tmp->next);
+     }
+     printf("%d,%d,%d \n",tmp->location,tmp->limit,tmp->next);
+
+}
 
 
-
+// Realsize = requested size + sizeof(struct block)
 
 struct block* DivideBlock( int realsize,int max){
     
-	    void * cur = page_addr+sizeof(struct block);
-        while (((struct block *)cur)->limit == max){cur = cur + sizeof(struct block);}
-        
+	    void * cur = page_addr + sizeof(struct block);
+        while (((struct block *)cur)->limit != max){ cur = cur + sizeof(struct block);}
+              
+        //Right shift
+        void * tmp_ptr = cur;
+        //Tmp_ptr is the last node
+        while(tmp_ptr != -1){tmp_ptr = tmp_ptr + sizeof(struct block);}
+        tmp_ptr = tmp_ptr + sizeof(struct block);
 
+        struct  block * new_tmp = (struct block *) tmp_ptr;
+        new_tmp->next = -1;
+        new_tmp->location = tmp_ptr;
+        tmp_ptr += sizeof(struct block);
+
+        void * tmp_ptr_next;
+        while ( tmp_ptr != cur)
+        {   
+            // Set the tmp_ptr_next as new created space for shifting initially.
+            tmp_ptr_next = tmp_ptr + sizeof(struct block);
+            
+            // Shifted all the elements to the right starting from last node to cur. 
+            ((struct block *)tmp_ptr_next)->limit = ((struct block *)tmp_ptr)->limit;
+        
+        // Opens location for the clonned struct 
+            ((struct block *)tmp_ptr_next)->location = ((struct block *)tmp_ptr)->location + sizeof(struct block);
+            ((struct block *)tmp_ptr_next)->next = ((struct block *)tmp_ptr)->next;
+        // As a last copy process the cur node will be copied to two consecutive nodes
+            tmp_ptr -= sizeof(struct block);
+        }
+        
         int tmp_location = ((struct block *)cur)->location;
         int tmp_limit = ((struct block *)cur)->limit;
-          
-        
+        int tmp_next = ((struct block *)cur)-> next;
+
+    //Set the size of the created nodes.
+    ((struct block *) tmp_ptr) -> limit = tmp_limit / 2;
+    ((struct block *) tmp_ptr_next) -> limit = tmp_limit / 2;
+    
+    //Lower location variable returned.
+    return ((struct block *) tmp_ptr);
 
 
+/*
         struct  block * new_block_1;
         struct  block * new_block_2;
         
@@ -292,9 +359,9 @@ struct block* DivideBlock( int realsize,int max){
         cur -> next = new_block_1;
         new_block_1->next = new_block_2;
         new_block_2->next = tmp_next;
- 
+
         return new_block_1;
-    
+ */    
 }
 
 //To find the necessary size of the allocation.
@@ -312,7 +379,7 @@ int nextPower(int num){
 
 void sbmem_free(void *ptr)
 {
-    	//sem_wait(&mutex);
+    	sem_wait(&mutex);
     	struct  block * deleted_target = (struct block *) ptr;
     	if(pid == -1){
             printf("U can not alloc before open in shared memory.");
@@ -335,16 +402,21 @@ void sbmem_free(void *ptr)
         {
             block_to_be_combined = combineBlocks(block_to_be_combined,block_to_be_combined->next);
         }
-        //sem_post(&mutex);
+        sem_post(&mutex);
 }
 
 
+
+// Soldakini(locationı küçük olanı) büyük olanın içine koy (limitini iki katına çıkar.)).
 struct block * combineBlocks(struct block * ptr_1,struct block * ptr_2)
 {
 	//sem_wait(&mutex);
-	struct block * combined_block;
-	combined_block->address = ptr_1->address;
-	combined_block->limit = ptr_1->limit * 2;
+	
+	combined_block->location = ptr_1->location;
+	combined_block->limit = (ptr_1->limit) * 2;
+
+
+
 	combined_block->next = ptr_2->next;
 
 	ptr_1 = NULL;ptr_2 = NULL;
