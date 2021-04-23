@@ -16,6 +16,9 @@ gcc -o destroy sbmemlib.c destroy_memory_sb.c  -lm -lrt -lpthread
 */
 
 
+void combineBlocks();
+struct  block* DivideBlock( int realsize, int max);
+void printList();
 
 struct block{
     int location;
@@ -38,8 +41,65 @@ int management_size;
 int pid = -1;
 sem_t mutex;
 
- 
+void linkedlistInit(){
 
+    void * ptr = page_addr;
+    void * head = page_addr + sizeof(struct block);
+    int count = 0;
+    int init_segsize = SEG_SIZE;
+   while(init_segsize > management_size){
+       init_segsize = init_segsize /2;
+       count ++;
+   }
+   int tmpa = management_size;
+   int tmpb = management_size * 2;
+   struct block * tmp = (struct block *) head;
+   for (int i = 0; i < count -1; i++){
+   
+       tmp->location = tmpa;
+       printf("linkedlistinit head->location %d\n",tmp->location );
+       tmp->limit = tmpa;
+       tmp->next = tmpb;
+       printf("linkedlistinit head->next %d\n",tmp->next );
+       printf("%d,%d,%d \n",tmp->location,tmp->limit,tmp->next);
+   
+    tmpa = tmpb;
+    tmpb = tmpb *2;
+    head = head + sizeof(struct block);
+    tmp = (struct block *) head;
+   }
+    tmp->limit = tmpa;
+    tmp->location = tmpa;
+    tmp->next = -1;
+   
+}
+
+int checkLocationStartingPoint(int location){
+	int n = 1;
+	
+	while (n < 12){
+		if (location == pow(2,n)){
+			return 0;
+		}
+		n++;
+	}
+	return -1;
+}
+
+void printList(){
+     void * tmp = page_addr;
+     tmp = tmp + sizeof(struct  block);
+     struct block * tmp2 = tmp;
+     while(tmp2->next != -1  ){
+     
+         printf("%d,%d,%d \n",tmp2->location,tmp2->limit,tmp2->next);
+         printf("%d \n",management_size);
+         tmp = tmp + sizeof(struct block);
+         tmp2 = tmp;
+     }
+     printf("%d,%d,%d \n",tmp2->location,tmp2->limit,tmp2->next);
+
+}
 
 int sbmem_init (int segsize){
 
@@ -70,59 +130,34 @@ int sbmem_init (int segsize){
         return -1;
     }
     
-     management_size = (int) (((segsize / 256) / 2) + 3) * sizeof(struct block);
+     management_size = nextPower((int) (((segsize / 256) / 2) + 3) * sizeof(struct block));
     //Initializes the shared memory maps it to the p_map
     printf("Before mmap*************************************** \n");
-    page_addr =  mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    page_addr = mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     
-    if(p_map == MAP_FAILED){
+    if(page_addr == MAP_FAILED){
         printf( "Mmap failed !!: \n");
         return -1;
     } printf("after mmap*************************************** \n");
 
-   
-
-    p_map = (struct block *) page_addr;
-    p_map->limit = SEG_SIZE;
-    p_map->location = 0;
-    // Active processor
-    p_map->next = 0;
-    list_head = p_map + sizeof(struct block);
-   
+	p_map = (struct block *) page_addr;
+    	p_map->limit = SEG_SIZE;
+    	p_map->location = 0;
+    	
+    	printf("YARAĞIM DAŞAĞIM 0\n");
+    
+    	// Active processor
+    	p_map->next = 1;
+    	list_head = p_map + sizeof(struct block);
+    printf("YARAĞIM DAŞAĞIM 1\n");
     linkedlistInit();
+    printf("YARAĞIM DAŞAĞIM 2\n");
     printList();
     return 0;
     
 }
 
 
-void linkedlistInit(){
-
-    int i  = 7;
-    void * ptr = page_addr;
-    struct block * head = page_addr + sizeof(struct block);
-    int count = 0;
-    int init_segsize = management_size;
-   while(init_segsize > management_size){
-       init_segsize = init_segsize /2;
-       count ++;
-   }
-   int tmpa = management_size;
-   int tmpb = management_size * 2;
-   for (int i = 0; i < count -1; i++){
-       head->location = tmpa;
-       head->limit = tmpa;
-       head->next = tmpb;
-   
-    tmpa = tmpb;
-    tmpb = tmpb *2;
-    head = head + sizeof(struct block);
-   }
-    head->limit = tmpa;
-    head->location = tmpa;
-    head->next = -1;
-   
-}
 
  
 void sbmem_remove(){
@@ -136,96 +171,117 @@ void sbmem_remove(){
 }
  
 int sbmem_open(){
+	
+	printf("BÜLLÜK 1 \n");
+	sem_init(&mutex,1,1);
+	sem_wait(&mutex);
+	fd = shm_open(sharedMemName,O_RDWR , 0666 );
 
-    sem_init(&mutex,1,1);
-    sem_wait(&mutex);
-    fd = shm_open(sharedMemName,O_RDWR , 0666 );
-    
-     p_map->next++;
-    page_addr = mmap(0, minimum_segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    
- 
-    
-    if(page_addr == MAP_FAILED){
-       printf( "Mmap failed: \n");
-       sem_post(&mutex);
-       return -1;
-    }
-    struct block * tmp = (struct block *) page_addr;
-    
-    
-    SEG_SIZE = tmp->limit;
+	printf("BÜLLÜK 2 \n");
+	
+	page_addr = mmap(0, 32768, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    if(p_map->next > 10){
-        printf("Processes exceeded the limit");
-        sem_post(&mutex);
-        return -1;
-        
-    }
-    
-    
-    page_addr =  mmap(0,SEG_SIZE,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
-    
-    if(page_addr == MAP_FAILED){
-       printf( "Mmap failed: \n");
-       sem_post(&mutex);
-       return -1;
-    }
-    
-    printf("Page address is : %d \n", page_addr);
-    
-    
-    //**********************
-    
-    
+	printf("BÜLLÜK 3 \n");
 
-    printf("Linked list called safely. \n");
+	if(page_addr == MAP_FAILED){
+		printf( "Mmap failed: \n");
+		sem_post(&mutex);
+		return -1;
+	}
+	struct block * tmp = (struct block *) page_addr;
+	
+	
 
-    pid = getpid();
-    printf("pid %d\n", pid);
-    p_map->next++;
-    printf("Opened library for allocation pid :%d \n",getpid());
-    sem_post(&mutex);
-    return 0;
+	printf("BÜLLÜK 4 \n");
+
+	SEG_SIZE = tmp->limit;
+
+	if(tmp->next > 10){
+		printf("Processes exceeded the limit");
+		sem_post(&mutex);
+		return -1;
+
+	}
+
+	printf("BÜLLÜK 5 \n");
+
+	page_addr =  mmap(0,SEG_SIZE,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
+
+	if(page_addr == MAP_FAILED){
+		printf( "Mmap failed: \n");
+		sem_post(&mutex);
+		return -1;
+	}
+
+	printf("BÜLLÜK 6 \n");
+	printf("Page address is : %d \n", page_addr);
+
+
+	//**********************
+
+
+
+	printf("Linked list called safely. \n");
+
+	pid = getpid();
+	printf("pid %d\n", pid);
+	tmp->next = tmp->next + 1;
+	
+	printf("Opened library for allocation pid :%d \n",getpid());
+	sem_post(&mutex);
+	return 0;
 }
 
 
 void *sbmem_alloc (int reqsize){
+
+	printf("ALLOC BÜLLÜK 1 \n");
 	sem_wait(&mutex);
     if(pid == -1){
         printf("U can not alloc before open in shared memory.");  
         return NULL;
     }   
+    
+    
     int realsize = nextPower(12 + reqsize);
 
     if(realsize > 4096 ||realsize < 128 ){
         return NULL;
     }
-    
+    printf("ALLOC BÜLLÜK 2 \n");
      
-    struct  block * tmp = (struct block *) page_addr;
-    struct  block * deleted_target;
+    void * tmp = page_addr + sizeof(struct block);
+    struct  block * new_tmp = (struct block *) tmp;
 
+	printf("ALLOC BÜLLÜK 3 \n");
     // En uygun size
     int max = -1;
 
     /*
         iSTEDĞİM SİZEDAN BÜYÜK EN KÜÇÜK & uygun olan size  
     */
-    while( (tmp->next != -1 ) && (tmp->limit  != realsize) ){
-        if(max == -1 && tmp->limit >= realsize){
-            max = tmp->limit;
-        }else if ((tmp->limit >= realsize) && max > tmp->limit )
+    while( (new_tmp->next != -1 ) && (new_tmp->limit  != realsize) ){
+    	printf("new_tmp->next %d \n", new_tmp->next);
+    	printf("ALLOC BÜLLÜK dfsdf \n");
+        if(max == -1 && new_tmp->limit >= realsize){
+            max = new_tmp->limit;
+            printf("ALLOC BÜLLÜK if \n");
+        }else if ((new_tmp->limit >= realsize) && max > new_tmp->limit )
         {
-            max = tmp->limit;
+            max = new_tmp->limit;
+            printf("ALLOC BÜLLÜK else \n");
         }
+        printf("ALLOC BÜLLÜK dsdasas \n");
         tmp = tmp + sizeof(struct block);
+        new_tmp = tmp;
     }
+    
+    printf("ALLOC BÜLLÜK 4 \n");
     
     // Linkedlist tek node ise
     if(max == -1){
-        if(tmp->limit >= realsize){
-            max = tmp->limit;
+        if(new_tmp->limit >= realsize){
+            max = new_tmp->limit;
         }else{
                sem_post(&mutex);
                 printf("No free space.");
@@ -233,21 +289,23 @@ void *sbmem_alloc (int reqsize){
         }
     }
     
+    printf("ALLOC BÜLLÜK 5 \n");
+    
     // Tam fit varsa gireceği alan pointer
-    if(tmp->limit == realsize){    
-        //tmp = tmp + sizeof(struct block);
+    if(new_tmp->limit == realsize){    
+        //new_tmp = new_tmp + sizeof(struct block);
         struct block * tmp_next;
 
         // Takes the result pointer 
-        struct block * result = tmp; 
-        tmp_next = page_addr + tmp->location;
+        struct block * result = new_tmp; 
+        tmp_next = page_addr + new_tmp->location;
       
       // Left shift operation
         while(tmp_next->location != -1){
-            tmp->limit = tmp_next->limit;
-            tmp->location = tmp_next->location;
-            tmp->next = tmp_next->next;
-            tmp = page_addr + sizeof(struct block);
+            new_tmp->limit = tmp_next->limit;
+            new_tmp->location = tmp_next->location;
+            new_tmp->next = tmp_next->next;
+            new_tmp = page_addr + sizeof(struct block);
             tmp_next = tmp_next + sizeof(struct block);
             }     
     
@@ -256,79 +314,82 @@ void *sbmem_alloc (int reqsize){
         return (void *) result;
     }
     
-
-    // Tam fit yok ama gireceği alan var; gireceği alanın pointerını ver.
-    return DivideBlock (realsize,max);
-
-
-
-
-    /*
-    if (tmp->limit !=){
-     }else if (tmp == NULL && tmp_size == true)
-     {
-        struct block * ptr;
-        do{
-            ptr = DivideBlock(realsize);        
-        }while(ptr->limit > nextPower(realsize));
-
-    }
-        deleted_target = tmp->next;
-        tmp->next = deleted_target->next;
-        deleted_target->next = NULL;
-        sem_post(&mutex);
-        return deleted_target;
- */
- 
-// To chehk the list
- printList();
- }
-
-
-void printList(){
-     struct  block * tmp = (struct  block *)page_addr;
-     tmp = tmp + sizeof(struct  block);
-     while(tmp->next != -1){
-         printf("%d,%d,%d \n",tmp->location,tmp->limit,tmp->next);
-     }
-     printf("%d,%d,%d \n",tmp->location,tmp->limit,tmp->next);
+    	printf("ALLOC BÜLLÜK 6 \n");
+    
+	sem_post(&mutex);
+    	// Tam fit yok ama gireceği alan var; gireceği alanın pointerını ver.
+    	
+    	printList();
+    	return DivideBlock (realsize,max);
 
 }
+
+
+
 
 
 // Realsize = requested size + sizeof(struct block)
 
 struct block * DivideBlock( int realsize,int max){
-    
-	    void * cur = page_addr + sizeof(struct block);
-        while (((struct block *)cur)->limit != max){ cur = cur + sizeof(struct block);}
-              
-        //Right shift
-        void * tmp_ptr = cur;
-        //Tmp_ptr is the last node
-        while(tmp_ptr != -1){tmp_ptr = tmp_ptr + sizeof(struct block);}
-        tmp_ptr = tmp_ptr + sizeof(struct block);
 
-        struct  block * new_tmp = (struct block *) tmp_ptr;
+	printf("DİVİDEBLOCK BÜLLÜK 1 \n");
+    
+	void * cur = page_addr + sizeof(struct block);
+	struct block * cur_ptr = (struct block *) cur;
+	
+	printf("DİVİDEBLOCK BÜLLÜK 2 \n");
+        while (cur_ptr->limit != max)
+        { 
+        	cur = cur + sizeof(struct block);
+        	cur_ptr = cur;
+        }
+        
+        void * tmp = cur;
+	struct block * tmp_ptr = (struct block *)tmp;
+	
+	printf("DİVİDEBLOCK BÜLLÜK 3 \n");
+        
+        //Tmp_ptr is the last node
+        while(tmp_ptr->next != -1){
+        	tmp = tmp + sizeof(struct block);
+        	tmp_ptr = tmp;
+        }
+        tmp = tmp + sizeof(struct block);
+        tmp_ptr = tmp;
+        
+        printf("DİVİDEBLOCK BÜLLÜK 4 \n");
+
+        struct  block * new_tmp = tmp_ptr;
+        
         new_tmp->next = -1;
         new_tmp->location = tmp_ptr;
-        tmp_ptr += sizeof(struct block);
-
-        void * tmp_ptr_next;
-        while ( tmp_ptr != cur)
-        {   
-            // Set the tmp_ptr_next as new created space for shifting initially.
-            tmp_ptr_next = tmp_ptr + sizeof(struct block);
-            
-            // Shifted all the elements to the right starting from last node to cur. 
-            ((struct block *)tmp_ptr_next)->limit = ((struct block *)tmp_ptr)->limit;
+        tmp += sizeof(struct block);
+        tmp_ptr = tmp;
         
-        // Opens location for the clonned struct 
-            ((struct block *)tmp_ptr_next)->location = ((struct block *)tmp_ptr)->location + sizeof(struct block);
-            ((struct block *)tmp_ptr_next)->next = ((struct block *)tmp_ptr)->next;
-        // As a last copy process the cur node will be copied to two consecutive nodes
-            tmp_ptr -= sizeof(struct block);
+        printf("DİVİDEBLOCK BÜLLÜK 5 \n");
+
+	void * holder;
+        struct block * tmp_ptr_next;
+        while ( tmp_ptr != cur_ptr)
+        {   
+        	holder = tmp + sizeof(struct block);
+        	//tmp = holder;
+        	
+		// Set the tmp_ptr_next as new created space for shifting initially.
+		tmp_ptr_next = holder;
+
+		// Shifted all the elements to the right starting from last node to cur. 
+		tmp_ptr_next->limit = tmp_ptr->limit;
+
+		// Opens location for the clonned struct 
+		((struct block *)tmp_ptr_next)->location = ((struct block *)tmp_ptr)->location + sizeof(struct block);
+		((struct block *)tmp_ptr_next)->next = ((struct block *)tmp_ptr)->next;
+		// As a last copy process the cur node will be copied to two consecutive nodes
+		tmp -= sizeof(struct block);
+		tmp_ptr = tmp;
         }
+        
+        printf("DİVİDEBLOCK BÜLLÜK 6 \n");
         
         int tmp_location = ((struct block *)cur)->location;
         int tmp_limit = ((struct block *)cur)->limit;
@@ -337,29 +398,13 @@ struct block * DivideBlock( int realsize,int max){
     //Set the size of the created nodes.
     ((struct block *) tmp_ptr) -> limit = tmp_limit / 2;
     ((struct block *) tmp_ptr_next) -> limit = tmp_limit / 2;
-    
+    printf("DİVİDEBLOCK BÜLLÜK 7 \n");
     //Lower location variable returned.
+    
+    printList();
     return ((struct block *) tmp_ptr);
+    
 
-
-/*
-        struct  block * new_block_1;
-        struct  block * new_block_2;
-        
-        new_block_1->limit = tmp_limit / 2;
-        new_block_2->limit = tmp_limit / 2;
-        
-        
-        new_block_1->location = tmp_location;
-        new_block_2->location = tmp_location + (tmp_limit / 2);
-
-
-        cur -> next = new_block_1;
-        new_block_1->next = new_block_2;
-        new_block_2->next = tmp_next;
-
-        return new_block_1;
- */    
 }
 
 //To find the necessary size of the allocation.
@@ -377,116 +422,166 @@ int nextPower(int num){
 
 void sbmem_free(void *ptr)
 {
-    	sem_wait(&mutex);
+	
+	//printList();
+	sem_wait(&mutex);
 
-    	if(p_map->next == -1){
-            printf("U can not alloc before open in shared memory.");
-            return;
-        }   
-        //Linkedlist pointer
-    	struct  block * current_ptr = page_addr + sizeof(struct block);
-        //Pointer location
-        int val = nextPower((int) (((segsize / 256) / 2) + 3) * sizeof(struct block));
-        //Ptr
-        struct block * tmp = page_addr + val;
-        //freelenmesi gereken mem location
-        struct block * cur = tmp + sizeof(struct block);
+	printf("FREE BÜLLÜK 1 \n");
+
+	struct block * page_ptr = (struct block *)page_addr;
+
+	if(page_ptr->next == -1){
+		printf("U can not alloc before open in shared memory.");
+		sem_post(&mutex);
+		return;
+	}   
+
+	printf("FREE BÜLLÜK BEKLE BAKİİM \n");
+	//Linkedlist pointer
+	void * voidCurPtr = page_addr + sizeof(struct block);
+	struct  block * current_ptr = (struct block *) voidCurPtr;
+
+	printf("FREE BÜLLÜK 2 \n");
+
+	//Pointer location
+	int val = nextPower((int) (((SEG_SIZE / 256) / 2) + 3) * sizeof(struct block));
+
+	//Ptr
+	void * blockTmpPtr = page_addr + val;
+	struct block * tmp = (struct block *) blockTmpPtr;
+
+	printf("FREE BÜLLÜK 3 \n");
+
+	//freelenmesi gereken mem location
+	void * blockCurPtr = blockTmpPtr+ sizeof(struct block);
+	struct block * cur = (struct block *) blockCurPtr;
+
+	printf("FREE BÜLLÜK 4 \n");
+
+	int mode = 1;
+
+	if(current_ptr->location == val){
+		mode = 0;
+	}
+	
+	while(cur != ptr){
+		//printf("FREE WHİLE BÜLLÜK 1 \n");
+
+		if( mode == 0){
+			printf("FREE İF BÜLLÜK 1 \n");
+
+			if(((current_ptr->location) + (current_ptr->limit)) == current_ptr->next) {
+
+				val = val + current_ptr->limit;
+				voidCurPtr = voidCurPtr + sizeof(struct block);
+				current_ptr = voidCurPtr;
+
+			}
+			else {
+				val = val + current_ptr->limit;
+				blockTmpPtr = page_addr + val;
+				tmp = blockTmpPtr;
+				mode = 1;
+				blockCurPtr = tmp + sizeof(struct block);
+				cur = blockCurPtr;
+			}
+		}
+		else {      
+
+			//printf("FREE ELSE BÜLLÜK 1 \n");            
+			if((val + (tmp->limit)) == current_ptr->next || (val + (tmp->limit)) == current_ptr->location){
+				val = val + tmp->limit;
+				mode = 0;
+				voidCurPtr = voidCurPtr + sizeof(struct block);
+				current_ptr = voidCurPtr;
+			}else {
+				val = val + tmp->limit;
+				blockTmpPtr = page_addr + val;
+				tmp = blockTmpPtr;
+				blockCurPtr = tmp + sizeof(struct block);
+				cur = blockCurPtr;
+			}
+		}
+
+		if(current_ptr->location == -1){
+			printf("Could not founded");
+			sem_post(&mutex);
+			return;
+		}
+
+	}
+
+	//node yoksa
+	if(current_ptr->next == -2){
+		printf("FREE NODE YOK BÜLLÜK 1 \n");
+		struct block * newNode;
+		newNode->limit = ((struct block * )ptr)->limit;
+		newNode->location =  ((struct block * )ptr)->location;
+		newNode->next = -1;
+		return ;
+	}
+
+
+	// tek node varsa
+	//  current pointer sonrasına right shift
+	// compaction.
+	else if (current_ptr->next == -1)
+	{
+		printf("FREE TEK NODE BÜLLÜK 1 \n");
+		struct block * newNode;
+		newNode->limit = ((struct block * )ptr)->limit;
+		newNode->location =  ((struct block * )ptr)->location;
+		if(newNode->location <  current_ptr->location){
+			newNode->next = current_ptr->location;
+			list_head = newNode;
+		}else{
+			newNode->next = -1;
+			current_ptr->next = newNode->location;
+		}
+		combineBlocks();       
+	}
+	// Ortasındaysa 
+	// current pointer.next freelediğin yeri koy.
+
+	else{
+		printf("FREE ORTA BÜLLÜK 1 \n");
+		struct block * shift_pointer = current_ptr;
+		void * voidShiftPtr = shift_pointer;
+
+		while(shift_pointer->next != -1){
+			voidShiftPtr = voidShiftPtr +sizeof(struct block);
+			shift_pointer = voidShiftPtr;
+		}
+
+		voidShiftPtr = voidShiftPtr +sizeof(struct block);
+		struct block * newNode = voidShiftPtr;
+
+		newNode->next = -1;
+		newNode->limit = shift_pointer->limit;
+		newNode->location = shift_pointer->next;
+
+		while(shift_pointer->location != current_ptr->location){
+			int nextLocation = shift_pointer->location;
+			newNode = shift_pointer;
+
+			voidShiftPtr = voidShiftPtr - sizeof(struct block);
+			shift_pointer = voidShiftPtr;
+
+			newNode->limit = shift_pointer->limit;
+			newNode->location = shift_pointer->next;
+			newNode->next = nextLocation;
+		}
+		voidShiftPtr = voidShiftPtr +sizeof(struct block);
+		shift_pointer = voidShiftPtr;
+
+		current_ptr->next = ((struct block * )ptr)->location;
+		((struct block * )ptr)->next = shift_pointer->location;
+		combineBlocks();
+
+	}
         
-       int mode = 1;
-
-       if(current_ptr->location == val){
-           mode = 0;
-           while(cur != ptr){
-
-               if( mode == 0){
-                   
-                   if(((current_ptr->location) + (current_ptr->limit)) == current_ptr->next) {
-                       val = val + current_ptr->limit;
-                       current_ptr = current_ptr + sizeof(struct block);
-                   }else{
-                       val = val + current_ptr->limit;
-                       tmp = (struct block *)(page_addr + val);
-                       mode = 1;
-                       cur = tmp + sizeof(struct block);
-                   }
-               }
-               else{                  
-                   if((val + (tmp->limit)) == current_ptr->next || (val + (tmp->limit)) == current_ptr->location){
-                        val = val + tmp->limit;
-                        mode = 0;
-                        current_ptr = current_ptr + sizeof(struct block);
-                   }else {
-                        val = val + tmp->limit;
-                        tmp = (struct block * ) page_addr + val;
-                        cur = tmp +  sizeof(struct block);
-                   }
-               }
-               
-               if(current_ptr->location == -1){
-                   printf("Could not founded");
-                   sem_post(&mutex);
-                   return;
-               }
-
-           }
-
-        //node yoksa
-        if(current_ptr->next == -2){
-            struct block * newNode;
-            newNode->limit = ((struct block * )ptr)->limit;
-            newNode->location =  ((struct block * )ptr)->location;
-            newNode->next = -1;
-            return ;
-       }
         
-            
-        // tek node varsa
-        //  current pointer sonrasına right shift
-        // compaction.
-        else if (current_ptr->next == -1)
-        {
-            struct block * newNode;
-            newNode->limit = ((struct block * )ptr)->limit;
-            newNode->location =  ((struct block * )ptr)->location;
-            if(newNode->location <  current_ptr->location){
-                newNode->next = current_ptr->location;
-                list_head = newNode;
-            }else{
-            newNode->next = -1;
-            current_ptr->next = newNode->location;
-            }
-            combineBlocks();       
-        }
-            // Ortasındaysa 
-            // current pointer.next freelediğin yeri koy.
-
-        else{
-            struct block * shift_pointer = current_ptr;
-            while(shift_pointer->next != -1){shift_pointer = shift_pointer +sizeof(struct block);}
-            
-            struct block * newNode = shift_pointer + sizeof(struct block);
-            
-            newNode->next = -1;
-            newNode->limit = shift_pointer->limit;
-            newNode->location = shift_pointer->next;
-
-            while(shift_pointer->location != current_ptr->location){
-                int nextLocation = shift_pointer->location;
-                newNode = shift_pointer;
-                shift_pointer = shift_pointer - sizeof(struct block);
-                newNode->limit = shift_pointer->limit;
-                newNode->location = shift_pointer->next;
-                newNode->next = nextLocation;
-            }
-            shift_pointer = shift_pointer + sizeof(struct block);
-            current_ptr->next = ((struct block * )ptr)->location;
-            ((struct block * )ptr)->next = shift_pointer->location;
-            combineBlocks();
-
-        }
-        
-        
-       }
+       
 
 
 
@@ -564,19 +659,19 @@ void combineBlocks(){
 				if(cur->location + cur->limit == cur_next->location && cur->limit == cur_next->limit){ 
 
 
-					cur->limit = cur>limit * 2;
+					cur->limit = cur->limit * 2;
 					cur->next = cur_next->next;
 					go_through_list_again = true; // Signal for repetition
 
-					struct Block * nextN = cur_next + sizeof(struct Block);
+					struct block * nextN = cur_next + sizeof(struct block);
 
 					while(cur_next->next != -1){
 
 						cur_next->location = nextN->location;
 						cur_next->limit = nextN->limit;
 						cur_next->next = nextN->next;
-						nextN = nextN + sizeof(struct Block);
-						cur_next = cur_next + sizeof(struct Block);
+						nextN = nextN + sizeof(struct block);
+						cur_next = cur_next + sizeof(struct block);
 					}
 
 					break;
@@ -585,8 +680,8 @@ void combineBlocks(){
 			}
 
 		    	// Continue
-		    	cur = cur + sizeof(struct Block);
-		    	cur_next = cur_next + sizeof(struct Block);
+		    	cur = cur + sizeof(struct block);
+		    	cur_next = cur_next + sizeof(struct block);
 
 		}
 
@@ -597,17 +692,7 @@ void combineBlocks(){
     
 }
 
-int checkLocationStartingPoint(int location){
-	int n = 1;
-	
-	while (n < 12){
-		if (location == pow(2,n)){
-			return 0;
-		}
-		n++;
-	}
-	return -1;
-}
+
 
 int sbmem_close (){
     
