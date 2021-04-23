@@ -503,29 +503,69 @@ void sbmem_free(void *ptr)
 
 
 
-// Sağdakini ()locationu büyük olanı küçük olanın içine koy(loc küçük olanın limitinini 2 katına çıkar ondan sonraki nodeları bir sola kaydır.)
-struct block * combineBlocks(struct block * lower_location,struct block * higher_location)
-{
-	//sem_wait(&mutex);
-	void * cur = page_addr;
-    void * cur_next;
-    ((struct block *) cur)->limit = ((struct block *) cur)->limit *2;
-    struct block * result;
-    result = cur; 
-    cur = cur + lower_location->location;
+void combineBlocks(){
+	
+	bool go_through_list_again = false;
+
+	do{
+		struct block * cur = (struct block *) page_addr;
+		cur = cur + sizeof(struct block);
+	
+		struct block * cur_next = cur + sizeof(struct block);
+		go_through_list_again = false;
+
+		//Traverse through whole list; if flag = 1, no compaction needed; otherwise, traverse and check again
+		while(cur->next != -1){
+
+			if(checkLocationStartingPoint(cur->location) == 0){ // if the location of temp starts at 2^n
+
+				if(cur->location + cur->limit == cur_next->location && cur->limit == cur_next->limit){ 
+
+
+					cur->limit = cur>limit * 2;
+					cur->next = cur_next->next;
+					go_through_list_again = true; // Signal for repetition
+
+					struct Block * nextN = cur_next + sizeof(struct Block);
+
+					while(cur_next->next != -1){
+
+						cur_next->location = nextN->location;
+						cur_next->limit = nextN->limit;
+						cur_next->next = nextN->next;
+						nextN = nextN + sizeof(struct Block);
+						cur_next = cur_next + sizeof(struct Block);
+					}
+
+					break;
+
+				}
+			}
+
+		    	// Continue
+		    	cur = cur + sizeof(struct Block);
+		    	cur_next = cur_next + sizeof(struct Block);
+
+		}
+
+
+
+
+	} while(go_through_list_again != false); //
     
-    // Left shift operation
-    while(((struct block *) cur)->next != -1){
-        cur = cur + sizeof(struct block);
-        cur_next = cur + sizeof(struct block);
-        
-        ((struct block *) cur)->limit = ((struct block *) cur_next)->limit;
-        ((struct block *) cur)->location = ((struct block *) cur_next)->location;
-        ((struct block *) cur)->next = ((struct block *) cur_next)->next;
-    }
-    return result;
 }
 
+int checkLocationStartingPoint(int location){
+	int n = 1;
+	
+	while (n < 12){
+		if (location == pow(2,n)){
+			return 0;
+		}
+		n++;
+	}
+	return -1;
+}
 
 int sbmem_close (){
     //No of process düşür
