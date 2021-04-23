@@ -7,7 +7,6 @@
 int main()
 {
     int i, ret;
- 
     
     char *p;
     ret = sbmem_open();
