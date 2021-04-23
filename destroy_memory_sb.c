@@ -6,12 +6,6 @@ include <stdio.h>
 
 int main() //Argümanları kaldırdım
 {
-    printf("Destroy başlıyoruz\n");
- 
-    
     sbmem_remove();
-    
-    
-    printf("Destroy kapatıyoruz\n");
     return 0;
 }
