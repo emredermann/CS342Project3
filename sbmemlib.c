@@ -22,7 +22,7 @@ struct block{
     int limit;
     int next;
 };
-
+struct  block* DivideBlock( int realsize,int max);
 void * page_addr;
 struct block * p_map;
 const char * sharedMemName = "/sharedMem";
@@ -33,7 +33,7 @@ int fd;
 int management_size;
 int pid = -1;
 sem_t mutex;
- 
+
  
 
 
@@ -81,7 +81,8 @@ int sbmem_init (int segsize){
     p_map = (struct block *) page_addr;
     p_map->limit = SEG_SIZE;
     p_map->location = 0;
-    p_map->next = -1;
+    // Active processor
+    p_map->next = 0;
    
     linkedlistInit();
     printList();
@@ -95,7 +96,7 @@ void linkedlistInit(){
     int i  = 7;
     void * ptr = page_addr;
     struct block * head = page_addr + sizeof(struct block);
-
+    int count = 0;
     int init_segsize = management_size;
    while(init_segsize > management_size){
        init_segsize = init_segsize /2;
@@ -135,7 +136,7 @@ int sbmem_open(){
     sem_wait(&mutex);
     fd = shm_open(sharedMemName,O_RDWR , 0666 );
     
-     
+     p_map->next++;
     page_addr = mmap(0, minimum_segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     
  
@@ -150,7 +151,7 @@ int sbmem_open(){
     
     SEG_SIZE = tmp->limit;
 
-    if(tmp->no_active_process > 10){
+    if(p_map->next > 10){
         printf("Processes exceeded the limit");
         sem_post(&mutex);
         return -1;
@@ -177,7 +178,7 @@ int sbmem_open(){
 
     pid = getpid();
     printf("pid %d\n", pid);
-    tmp->no_active_process++;
+    p_map->next++;
     printf("Opened library for allocation pid :%d \n",getpid());
     sem_post(&mutex);
     return 0;
@@ -301,7 +302,7 @@ void printList(){
 
 // Realsize = requested size + sizeof(struct block)
 
-struct block* DivideBlock( int realsize,int max){
+struct block * DivideBlock( int realsize,int max){
     
 	    void * cur = page_addr + sizeof(struct block);
         while (((struct block *)cur)->limit != max){ cur = cur + sizeof(struct block);}
@@ -381,66 +382,69 @@ int nextPower(int num){
 void sbmem_free(void *ptr)
 {
     	sem_wait(&mutex);
+
+    	if(p_map->next == -1){
+            printf("U can not alloc before open in shared memory.");
+            return;
+        }   
+
+
         //Linkedlist pointer
     	struct  block * current_ptr = page_addr + sizeof(struct block);
         //Pointer location
-        int val = (int) (((segsize / 256) / 2) + 3) * sizeof(struct block);
+        int val = (int) (((SEG_SIZE / 256) / 2) + 3) * sizeof(struct block);
         //Ptr
-        struct  block * tmp = page_addr + val;
+        struct block * tmp = page_addr + val;
         //freelenmesi gereken mem location
-        struct block * cur = tmp + sizeof(block);
+        struct block * cur = tmp + sizeof(struct block);
         
         /*
             Search part
         */
 
        int mode = 1;
+
        if(cur->location == val){
            mode = 0;
            while(cur != ptr){
+
                if( mode == 0){
-                   if((cur->location + cur->limit) == cur->next) {
+                   //cur üzerinden 
+                   if(((cur->location )+ (cur->limit)) == cur->next) {
                        val = val + cur->limit;
                        cur = cur + sizeof(struct block);
                    }else{
                        val = val + cur->limit;
-                       tmp = (struct block)(page_addr + val);
+                       tmp = (struct block *)(page_addr + val);
                        mode = 1;
-
-                       // 2 * sizeof(struct block) ne demek??
-                       cur = tmp + 2 * sizeof(struct block);
+                       cur = tmp + sizeof(struct block);
                    }
                }
                else{
+                   // tmp üzerinden
                    if((val + (tmp->limit)) == cur->next || (val+(tmp->limit)) == cur->location){
-                       val = val + tmp->limit;
-                       mode = 0;
-                       cur = cur + sizeof(struct block);
+                        val = val + tmp->limit;
+                        mode = 0;
+                        cur = cur + sizeof(struct block);
                    }else {
-                       val = val + tmp->limit;
-                       tmp = (struct * block) page_addr + val;
-                       // 2* sizeofssadsad
-                       cur = tmp+2*sizeof(struct block);
+                        val = val + tmp->limit;
+                        tmp = (struct block * ) page_addr + val;
+                        cur = tmp +  sizeof(struct block);
                    }
                }
-               //unable to find
+               
                if(cur->next == -1){
                    printf("Could not founded");
-     //              sem_post(&mutex);
-                   return
+                   sem_post(&mutex);
+                   return;
                }
            }
        }
 ///**********************************************************
 
-        struct  block * location_next_ptr;
+       // struct  block * location_next_ptr;
 
-    	if(pid == -1){
-            printf("U can not alloc before open in shared memory.");
-            return;
-        }   
 
-        
 //        while(current_ptr->limit < (((struct block *) ptr)->limit)){
 //            current_ptr = current_ptr + sizeof(struct block);
 //       }
@@ -518,6 +522,7 @@ struct block * combineBlocks(struct block * lower_location,struct block * higher
 int sbmem_close (){
     //No of process düşür
     int t = munmap(page_addr, SEG_SIZE);
+    p_map->next--;
     printf("To use the library again first call sbmem_open()");
    
 }
