@@ -210,7 +210,6 @@ void *sbmem_alloc (int reqsize){
         return NULL;
     }   
     
-    
     int realsize = nextPower(12 + reqsize);
 
     if(realsize > 4096 ||realsize < 128 ){
@@ -220,7 +219,7 @@ void *sbmem_alloc (int reqsize){
     void * tmp = page_addr + sizeof(struct block);
     struct  block * new_tmp = (struct block *) tmp;
 
-	  int max = -1;
+	int max = -1;
 
      while( (new_tmp->next != -1 ) && (new_tmp->limit  != realsize) ){
         if(max == -1 && new_tmp->limit >= realsize){
