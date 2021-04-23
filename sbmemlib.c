@@ -404,28 +404,27 @@ void sbmem_free(void *ptr)
 
        int mode = 1;
 
-       if(cur->location == val){
+       if(current_ptr->location == val){
            mode = 0;
            while(cur != ptr){
 
                if( mode == 0){
-                   //cur üzerinden 
-                   if(((cur->location )+ (cur->limit)) == cur->next) {
-                       val = val + cur->limit;
-                       cur = cur + sizeof(struct block);
+                   
+                   if(((current_ptr->location) + (current_ptr->limit)) == current_ptr->next) {
+                       val = val + current_ptr->limit;
+                       current_ptr = current_ptr + sizeof(struct block);
                    }else{
-                       val = val + cur->limit;
+                       val = val + current_ptr->limit;
                        tmp = (struct block *)(page_addr + val);
                        mode = 1;
                        cur = tmp + sizeof(struct block);
                    }
                }
-               else{
-                   // tmp üzerinden
-                   if((val + (tmp->limit)) == cur->next || (val+(tmp->limit)) == cur->location){
+               else{                  
+                   if((val + (tmp->limit)) == current_ptr->next || (val + (tmp->limit)) == current_ptr->location){
                         val = val + tmp->limit;
                         mode = 0;
-                        cur = cur + sizeof(struct block);
+                        current_ptr = current_ptr + sizeof(struct block);
                    }else {
                         val = val + tmp->limit;
                         tmp = (struct block * ) page_addr + val;
@@ -433,13 +432,22 @@ void sbmem_free(void *ptr)
                    }
                }
                
-               if(cur->next == -1){
+               if(current_ptr->next == -1){
                    printf("Could not founded");
                    sem_post(&mutex);
                    return;
                }
+            //node yoksa 
+
+            
+            // tek node varsa
            }
+
+
        }
+
+
+
 ///**********************************************************
 
        // struct  block * location_next_ptr;
