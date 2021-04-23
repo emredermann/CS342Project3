@@ -21,7 +21,6 @@ struct block{
     int location;
     int limit;
     int next;
-    int no_active_process;
 };
 
 void * page_addr;
@@ -66,9 +65,10 @@ int sbmem_init (int segsize){
         return -1;
     }
     
+    int management_size = (int) (((segsize / 256)/2)+3) * sizeof(struct block);
     //Initializes the shared memory mapps it to the p_map
     printf("Before mmap*************************************** \n");
-    void * ptr =  mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+    page_addr =  mmap( NULL, segsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
     
     if(p_map == MAP_FAILED){
         printf( "Mmap failed !!: \n");
@@ -77,13 +77,12 @@ int sbmem_init (int segsize){
 
    
 
-    p_map = (struct block *) ptr;
+    p_map = (struct block *) page_addr;
     p_map->limit = SEG_SIZE;
     p_map->location = 0;
     p_map->next = -1;
    
-     linkedlistInit();
-
+    linkedlistInit();
 
     return 0;
     
@@ -96,7 +95,7 @@ void linkedlistInit(){
     void * ptr = page_addr;
     struct block * new_block ;
     
-    new_block->location = ptr;
+    new_block->location = (void * ptr) ptr;
     new_block->next = ptr + sizeof(struct block);
     ptr = ptr + sizeof(struct block);
 
@@ -380,25 +379,60 @@ void sbmem_free(void *ptr)
 {
     	sem_wait(&mutex);
     	struct  block * current_ptr = page_addr + sizeof(struct block);
-        struct  block * delete_ptr;
+        struct  block * location_next_ptr;
+        void * memory_ptr = ;
+        int value = 1024;
+
     	if(pid == -1){
             printf("U can not alloc before open in shared memory.");
             return;
         }   
+        while(current_ptr->limit < (((struct block *) ptr)->limit)){
+            current_ptr = current_ptr + sizeof(struct block);
+        }
+
+        location_next_ptr =  ((struct  block *) current_ptr);
+        current_ptr = current_ptr - sizeof(struct block);    
+       /*
+        current_ptr->next = ((struct block *) ptr)->location;
+        ((struct block *) ptr)->location = current_ptr + ()
+        ((struct block *) ptr)-> next = location_next_ptr->location;
+        */
+       
+       struct block * end_node = current_ptr;
+       while (end_node->next != -1)
+       {
+           end_node = end_node + sizeof(struct block);
+       }
+       struct block * newNode;
+       //end_node = end_node + sizeof(struct block);
+     
+       while(end_node->location != current_ptr->location){
         
-      /*      
+        newNode->location = end_node->location;
+        newNode->limit = end_node->limit;
+        newNode->next = end_node->next;
+        newNode = end_node;
+        end_node->location = end_node->location - sizeof(block struct);
+       }
+        current_ptr = current_ptr + sizeof(block struct);
+        current_ptr->limit = ((struct  block *)ptr)->limit;
+        current_ptr->location = ((struct  block *)end_node)->next;
+        
+        end_node =  end_node + (2*sizeof(block));        
+        current_ptr->next = ((struct  block *)end_node)->location;
+
+       /*      
         deleted_target->next = tmp->next;
         tmp->next = deleted_target;
-        struct block * block_to_be_combined = deleted_target;
-
-
-         
+        struct block * block_to_be_combined = deleted_target;     
         while(block_to_be_combined->limit == block_to_be_combined->next->limit)
         {
             block_to_be_combined = combineBlocks(block_to_be_combined,block_to_be_combined->next);
         }
         sem_post(&mutex);
         */
+       
 }
 
 
@@ -414,7 +448,6 @@ struct block * combineBlocks(struct block * lower_location,struct block * higher
     result = cur; 
     cur = cur + lower_location->location;
     
-
     // Left shift operation
     while(((struct block *) cur)->next != -1){
         cur = cur + sizeof(struct block);
@@ -430,8 +463,7 @@ struct block * combineBlocks(struct block * lower_location,struct block * higher
 
 int sbmem_close (){
     //sem_wait(&mutex);
-    page_addr->no_active_process--;
-    int t = munmap(page_addr, SEG_SIZE);
+     int t = munmap(page_addr, SEG_SIZE);
     printf("To use the library again first call sbmem_open()");
     if(shm_unlink("/sharedMem")){
         //sem_post(&mutex);
