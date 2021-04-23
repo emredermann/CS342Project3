@@ -100,7 +100,6 @@ void linkedlistInit(){
     new_block->next = ptr + sizeof(struct block);
     ptr = ptr + sizeof(struct block);
 
-    
     int limit = pow(2,i);
     new_block->limit = limit;    
     
@@ -380,49 +379,52 @@ int nextPower(int num){
 void sbmem_free(void *ptr)
 {
     	sem_wait(&mutex);
-    	struct  block * deleted_target = (struct block *) ptr;
+    	struct  block * current_ptr = page_addr + sizeof(struct block);
+        struct  block * delete_ptr;
     	if(pid == -1){
             printf("U can not alloc before open in shared memory.");
             return;
         }   
         
-        struct  block * tmp = page_addr;
-        while(tmp != NULL && tmp->next <= deleted_target->limit)
-        {
-        tmp = tmp->next;
-        } 
-            
+      /*      
         deleted_target->next = tmp->next;
         tmp->next = deleted_target;
         struct block * block_to_be_combined = deleted_target;
 
 
-        // Infinite loop bak!!
+         
         while(block_to_be_combined->limit == block_to_be_combined->next->limit)
         {
             block_to_be_combined = combineBlocks(block_to_be_combined,block_to_be_combined->next);
         }
         sem_post(&mutex);
+        */
 }
 
 
 
-// Soldakini(locationı küçük olanı) büyük olanın içine koy (limitini iki katına çıkar.)).
-struct block * combineBlocks(struct block * ptr_1,struct block * ptr_2)
+// Sağdakini ()locationu büyük olanı küçük olanın içine koy(loc küçük olanın limitinini 2 katına çıkar ondan sonraki nodeları bir sola kaydır.)
+struct block * combineBlocks(struct block * lower_location,struct block * higher_location)
 {
 	//sem_wait(&mutex);
-	
-	combined_block->location = ptr_1->location;
-	combined_block->limit = (ptr_1->limit) * 2;
+	void * cur = page_addr;
+    void * cur_next;
+    ((struct block *) cur)->limit = ((struct block *) cur)->limit *2;
+    struct block * result;
+    result = cur; 
+    cur = cur + lower_location->location;
+    
 
-
-
-	combined_block->next = ptr_2->next;
-
-	ptr_1 = NULL;ptr_2 = NULL;
-	//sem_post(&mutex);
-	return combined_block;
-
+    // Left shift operation
+    while(((struct block *) cur)->next != -1){
+        cur = cur + sizeof(struct block);
+        cur_next = cur + sizeof(struct block);
+        
+        ((struct block *) cur)->limit = ((struct block *) cur_next)->limit;
+        ((struct block *) cur)->location = ((struct block *) cur_next)->location;
+        ((struct block *) cur)->next = ((struct block *) cur_next)->next;
+    }
+    return result;
 }
 
 
