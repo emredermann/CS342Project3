@@ -434,8 +434,6 @@ void sbmem_free(void *ptr)
 ///**********************************************************
 
         struct  block * location_next_ptr;
-        void * memory_ptr = ;
-        int value = 1024;
 
     	if(pid == -1){
             printf("U can not alloc before open in shared memory.");
@@ -470,10 +468,10 @@ void sbmem_free(void *ptr)
         end_node->location = end_node->location - sizeof(block struct);
        }
         current_ptr = current_ptr + sizeof(block struct);
-        current_ptr->limit = ((struct  block *)ptr)->limit;
-        current_ptr->location = ((struct  block *)end_node)->next;
+        current_ptr->limit = ((struct  block *) ptr) -> limit;
+        current_ptr->location = ((struct  block *)end_node) -> next;
         
-        end_node =  end_node + (2*sizeof(block));        
+        end_node =  end_node + (2 * sizeof(block));        
         current_ptr->next = ((struct  block *)end_node)->location;
 
        /*      
