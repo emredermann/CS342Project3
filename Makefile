@@ -1,12 +1,12 @@
 all: libsbmemlib.a  app create_memory_sb destroy_memory_sb
 
 libsbmemlib.a:  sbmemlib.c
-	gcc -Wall -c sbmemlib.c
+	gcc -Wall -c -lrt -lm sbmemlib.c
 	ar -cvq libsbmemlib.a sbmemlib.o
 	ranlib libsbmemlib.a
 
 app: app.c
-	gcc -Wall -o app app.c -L. -lsbmemlib -lpthread
+	gcc -Wall -o app app.c -L. -lsbmemlib -lpthread -lrt -lm
 
 create_memory_sb: create_memory_sb.c
 	gcc -Wall -o create_memory_sb create_memory_sb.c -L. -lsbmemlib -lpthread
