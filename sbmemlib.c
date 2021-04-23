@@ -23,8 +23,12 @@ struct block{
     int next;
 };
 struct  block* DivideBlock( int realsize,int max);
+int nextPower(int num);
+int checkLocationStartingPoint(int location);
+void combineBlocks();
 void * page_addr;
 struct block * p_map;
+struct block * list_head;
 const char * sharedMemName = "/sharedMem";
 const int minimum_segsize = 32768;
 int virtualAddress;
@@ -83,6 +87,7 @@ int sbmem_init (int segsize){
     p_map->location = 0;
     // Active processor
     p_map->next = 0;
+    list_head = p_map + sizeof(struct block);
    
     linkedlistInit();
     printList();
@@ -248,6 +253,7 @@ void *sbmem_alloc (int reqsize){
             }     
     
         tmp_next = tmp_next + sizeof(struct block);
+        result->next = -2;
         return (void *) result;
     }
     
@@ -387,21 +393,15 @@ void sbmem_free(void *ptr)
             printf("U can not alloc before open in shared memory.");
             return;
         }   
-
-
         //Linkedlist pointer
     	struct  block * current_ptr = page_addr + sizeof(struct block);
         //Pointer location
-        int val = (int) (((SEG_SIZE / 256) / 2) + 3) * sizeof(struct block);
+        int val = nextPower((int) (((segsize / 256) / 2) + 3) * sizeof(struct block));
         //Ptr
         struct block * tmp = page_addr + val;
         //freelenmesi gereken mem location
         struct block * cur = tmp + sizeof(struct block);
         
-        /*
-            Search part
-        */
-
        int mode = 1;
 
        if(current_ptr->location == val){
@@ -432,18 +432,70 @@ void sbmem_free(void *ptr)
                    }
                }
                
-               if(current_ptr->next == -1){
+               if(current_ptr->location == -1){
                    printf("Could not founded");
                    sem_post(&mutex);
                    return;
                }
-            //node yoksa 
 
-            
-            // tek node varsa
            }
 
+        //node yoksa
+        if(current_ptr->next == -2){
+            struct block * newNode;
+            newNode->limit = ((struct block * )ptr)->limit;
+            newNode->location =  ((struct block * )ptr)->location;
+            newNode->next = -1;
+            return ;
+       }
+        
+            
+        // tek node varsa
+        //  current pointer sonrasına right shift
+        // compaction.
+        else if (current_ptr->next == -1)
+        {
+            struct block * newNode;
+            newNode->limit = ((struct block * )ptr)->limit;
+            newNode->location =  ((struct block * )ptr)->location;
+            if(newNode->location <  current_ptr->location){
+                newNode->next = current_ptr->location;
+                list_head = newNode;
+            }else{
+            newNode->next = -1;
+            current_ptr->next = newNode->location;
+            }
+            combineBlocks();       
+        }
+            // Ortasındaysa 
+            // current pointer.next freelediğin yeri koy.
 
+        else{
+            struct block * shift_pointer = current_ptr;
+            while(shift_pointer->next != -1){shift_pointer = shift_pointer +sizeof(struct block);}
+            
+            struct block * newNode = shift_pointer + sizeof(struct block);
+            
+            newNode->next = -1;
+            newNode->limit = shift_pointer->limit;
+            newNode->location = shift_pointer->next;
+
+            while(shift_pointer->location != current_ptr->location){
+                int nextLocation = shift_pointer->location;
+                newNode = shift_pointer;
+                shift_pointer = shift_pointer - sizeof(struct block);
+                newNode->limit = shift_pointer->limit;
+                newNode->location = shift_pointer->next;
+                newNode->next = nextLocation;
+            }
+            shift_pointer = shift_pointer + sizeof(struct block);
+            current_ptr->next = ((struct block * )ptr)->location;
+            ((struct block * )ptr)->next = shift_pointer->location;
+            combineBlocks();
+
+        }
+        
+        
        }
 
 
@@ -568,7 +620,7 @@ int checkLocationStartingPoint(int location){
 }
 
 int sbmem_close (){
-    //No of process düşür
+    
     int t = munmap(page_addr, SEG_SIZE);
     p_map->next--;
     printf("To use the library again first call sbmem_open()");
